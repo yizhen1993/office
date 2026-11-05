@@ -65,12 +65,22 @@ export class NetworkManager {
 
       const playersObj = data.players || {};
 
-      // A. 若場景具備本地玩家生成工廠，且本地尚未生成主角，則進行初始化
-      if (playersObj[this.selfId] && this.scene.spawnLocalPlayer) {
-        this.scene.spawnLocalPlayer({
-          selfId: this.selfId,
-          players: Object.values(playersObj)
-        });
+      // A. 若場景具備本地玩家生成工廠
+      if (this.scene.spawnLocalPlayer) {
+        if (this.scene.isSpawnBlocked) {
+          // 條件 B: 尚未完成首次創角，暫存 current_players 快照，先不生成主角精靈
+          console.log('[Network] ⏸️ 首次創角中，暫存 current_players 快照等待提交');
+          this.scene.pendingInitData = {
+            selfId: this.selfId,
+            players: Object.values(playersObj)
+          };
+        } else {
+          // 條件 A: 已有快取資料，順暢生成本地主角
+          this.scene.spawnLocalPlayer({
+            selfId: this.selfId,
+            players: Object.values(playersObj)
+          });
+        }
       }
 
       // B. 迭代其餘在線玩家並生成遠端精靈實體
@@ -304,22 +314,24 @@ export class NetworkManager {
     }).setOrigin(0.5);
     container.add(nameText);
 
-    // 6. 自訂頭頂跟隨狀態泡泡 (Overhead Tailing Bubble Badge)
-    const bubbleContainer = this.scene.add.container(0, -50);
-    const bubbleSprite = this.scene.add.sprite(0, 0, `bubble_badge_${customBubble}`);
-    bubbleSprite.setScale(0.85);
-    bubbleContainer.add(bubbleSprite);
-    container.add(bubbleContainer);
+    // 6. 自訂頭頂跟隨狀態泡泡 (直接加入 container 扁平管理)
+    let bubbleSprite = null;
+    const bubbleKey = `bubble_badge_${customBubble}`;
+    if (this.scene.textures.exists(bubbleKey)) {
+      bubbleSprite = this.scene.add.sprite(0, -50, bubbleKey);
+      bubbleSprite.setScale(0.85);
+      container.add(bubbleSprite);
 
-    // 泡泡懸浮微動緩動動畫
-    this.scene.tweens.add({
-      targets: bubbleContainer,
-      y: -54,
-      duration: 1200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
+      // 泡泡懸浮微動緩動動畫
+      this.scene.tweens.add({
+        targets: bubbleSprite,
+        y: -54,
+        duration: 1200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    }
 
     // 7. 手持點心懸浮圖標
     const foodIcon = this.scene.add.sprite(14, 8, 'item_coke');
@@ -342,7 +354,6 @@ export class NetworkManager {
       baseSprite,
       outfitSprite,
       hairSprite,
-      bubbleContainer,
       bubbleSprite,
       nameText,
       foodIcon,
@@ -507,6 +518,39 @@ export class NetworkManager {
   // ==========================================================================
   // 業務事件發射句柄 (Public Emitters)
   // ==========================================================================
+  sendMoveImmediate() {
+    if (!this.socket || !this.scene.player) return;
+    const p = this.scene.player;
+    const currentAnim = this.scene.currentAnimKey || 'idle_down';
+    const isSprinting = this.scene.mutexMachine ? this.scene.mutexMachine.isSprinting : false;
+    const isSitting = this.scene.mutexMachine ? this.scene.mutexMachine.isSitting : false;
+    const heldItem = (this.scene.mutexMachine && this.scene.mutexMachine.heldItem) ? this.scene.mutexMachine.heldItem : 'none';
+    const avatarData = this.scene.playerData ? this.scene.playerData.avatarData : undefined;
+    const customBubble = this.scene.playerData ? this.scene.playerData.customBubble : undefined;
+
+    this.socket.emit('player_move', {
+      id: this.selfId,
+      x: Math.round(p.x * 10) / 10,
+      y: Math.round(p.y * 10) / 10,
+      anim: currentAnim,
+      heldItem: heldItem,
+      isSprinting: isSprinting,
+      isSitting: isSitting,
+      avatarData: avatarData,
+      customBubble: customBubble
+    });
+
+    this.lastEmittedState = {
+      x: p.x,
+      y: p.y,
+      anim: currentAnim,
+      isSprinting: isSprinting,
+      isSitting: isSitting,
+      heldItem: heldItem
+    };
+    this.lastEmitTime = Date.now();
+  }
+
   sendUpdateAvatar(avatarConfig) {
     if (this.socket) {
       this.socket.emit('player_update_avatar', avatarConfig);

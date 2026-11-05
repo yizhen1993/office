@@ -65,16 +65,56 @@ export class MainScene extends Phaser.Scene {
 
   // ==========================================================================
   // 0. 本地持久化裝扮讀取 (Init Lifecycle & LocalStorage Cache)
+  // 規格: 嚴格驗證快取結構，防止空值阻塞或未定義字段崩潰
   // ==========================================================================
   init() {
+    this.savedAvatarConfig = null;
+    this.isSpawnBlocked = true;  // 預設阻止生成，直到確認 LocalStorage
+    this.pendingInitData = null; // 暫存伺服器發來的 current_players 數據
+
     try {
-      const saved = localStorage.getItem('chubby_office_avatar');
-      if (saved) {
-        this.savedAvatarConfig = JSON.parse(saved);
-        console.log('[Avatar] 📦 成功讀取本地快取裝扮設定:', this.savedAvatarConfig);
+      const raw = localStorage.getItem('chubby_office_avatar');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // 嚴格非空與有效結構驗證，嚴禁空值或殘缺物件引發後續崩潰
+        if (parsed && typeof parsed === 'object' && parsed.name && typeof parsed.name === 'string' && parsed.name.trim().length > 0) {
+          const rawSpecies = (parsed.species || (parsed.avatarData && parsed.avatarData.species) || 'CAT').toUpperCase();
+          const validSpecies = ['CAT', 'BEAR', 'BUNNY', 'PUPPY'].includes(rawSpecies) ? rawSpecies : 'CAT';
+          const hair = (parsed.avatarData && parsed.avatarData.hair) || 'spiky';
+          const hairColor = (parsed.avatarData && parsed.avatarData.hairColor) || '#FFE66D';
+          const outfit = (parsed.avatarData && parsed.avatarData.outfit) || 'hoodie';
+          const outfitColor = (parsed.avatarData && parsed.avatarData.outfitColor) || parsed.shirtColor || '#4ECDC4';
+          const customBubble = parsed.customBubble || 'code';
+
+          this.savedAvatarConfig = {
+            name: parsed.name.trim(),
+            species: validSpecies,
+            shirtColor: outfitColor,
+            avatarData: {
+              species: validSpecies,
+              hair,
+              hairColor,
+              outfit,
+              outfitColor
+            },
+            customBubble
+          };
+          this.isSpawnBlocked = false; // 條件 A: 本地有完整舊資料，允許直接生成
+          console.log('[Avatar] 📦 成功讀取本地快取裝扮設定:', this.savedAvatarConfig);
+        } else {
+          console.log('[Avatar] ⚠️ 本地快取資料不完整或缺少姓名，導向創角流程');
+          this.savedAvatarConfig = null;
+          this.isSpawnBlocked = true;
+        }
+      } else {
+        console.log('[Avatar] ℹ️ 首次登入 (localStorage 為 null)，導向首次創角流程');
+        this.savedAvatarConfig = null;
+        this.isSpawnBlocked = true;
       }
     } catch (err) {
-      console.warn('[Avatar] ⚠️ 讀取本地快取裝扮設定失敗:', err);
+      console.warn('[Avatar] ⚠️ 讀取本地快取裝扮失敗，降級為首次創角流程:', err);
+      this.savedAvatarConfig = null;
+      this.isSpawnBlocked = true;
     }
   }
 
@@ -114,6 +154,15 @@ export class MainScene extends Phaser.Scene {
 
     // 5. 初始化 UI 控制器 (包含虛擬搖桿與神殿透明按鈕)
     this.ui = new UIManager(this);
+
+    // 檢查首次登入創角條件 (條件 B: 本地無舊資料)
+    if (this.isSpawnBlocked || !this.savedAvatarConfig) {
+      console.log('[Scene] 🛡️ 條件 B 觸發: 本地無舊資料，暫時阻止 Spawn 並彈出創角視窗');
+      this.ui.showWelcomeCustomizerPopup();
+    } else {
+      console.log('[Scene] ⚡ 條件 A 觸發: 本地已有舊資料，跳過創角視窗直接準備 Spawn');
+      this.ui.hideWelcomeCustomizerPopup();
+    }
 
     // 6. 連接 Socket.io WebSocket 服務器
     this.network.connect();
@@ -486,55 +535,81 @@ export class MainScene extends Phaser.Scene {
   // ==========================================================================
 
   /**
-   * 根據伺服器發放的 init_state 生成本地玩家實體 (支援複合外觀裝扮與本地持久化)
+   * 根據伺服器發放的 init_state 或自訂創角數據生成本地玩家實體 (支援複合外觀裝扮與本地持久化)
    */
-  spawnLocalPlayer(initData) {
-    const selfData = initData.players.find(p => p.id === initData.selfId) || {
-      x: 640,
-      y: 720,
-      species: 'CAT',
-      shirtColor: '#4ECDC4',
-      name: 'Player'
+  spawnLocalPlayer(initData, directAvatarData = null) {
+    if (this.player && this.player.active) {
+      console.log('[Scene] ⚠️ 主角已存在，忽略重複生成調用');
+      return;
+    }
+
+    // 若處於生成阻止狀態且無即時創角數據傳入，嚴禁生成
+    if (this.isSpawnBlocked && !directAvatarData) {
+      console.log('[Scene] ⏸️ 角色生成處於阻止狀態 (首次登入)，已暫存 initData 等待用戶提交創角');
+      this.pendingInitData = initData;
+      return;
+    }
+
+    const selfId = (initData && initData.selfId) || (this.network && this.network.selfId) || 'player';
+    const serverPlayer = (initData && initData.players && initData.players.find(p => p.id === selfId)) || {};
+
+    // 優先序: directAvatarData > this.savedAvatarConfig > serverPlayer
+    const config = directAvatarData || this.savedAvatarConfig || serverPlayer;
+
+    const name = (config && config.name) || serverPlayer.name || 'Player';
+    const rawSpecies = (config && (config.species || (config.avatarData && config.avatarData.species))) || serverPlayer.species || 'CAT';
+    const species = ['CAT', 'BEAR', 'BUNNY', 'PUPPY'].includes(String(rawSpecies).toUpperCase()) ? String(rawSpecies).toUpperCase() : 'CAT';
+    const shirtColor = (config && (config.shirtColor || (config.avatarData && config.avatarData.outfitColor))) || serverPlayer.shirtColor || '#4ECDC4';
+
+    const avatarData = (config && config.avatarData) ? {
+      species: species,
+      hair: config.avatarData.hair || 'spiky',
+      hairColor: config.avatarData.hairColor || '#FFE66D',
+      outfit: config.avatarData.outfit || 'hoodie',
+      outfitColor: config.avatarData.outfitColor || shirtColor
+    } : {
+      species: species,
+      hair: 'spiky',
+      hairColor: '#FFE66D',
+      outfit: 'hoodie',
+      outfitColor: shirtColor
     };
 
-    // 優先讀取並覆寫本地持久化快取裝扮設定 (Persistent Local Storage Engine)
-    if (this.savedAvatarConfig) {
-      if (this.savedAvatarConfig.name) selfData.name = this.savedAvatarConfig.name;
-      if (this.savedAvatarConfig.species) selfData.species = this.savedAvatarConfig.species;
-      if (this.savedAvatarConfig.avatarData) {
-        selfData.avatarData = this.savedAvatarConfig.avatarData;
-      }
-      if (this.savedAvatarConfig.customBubble) {
-        selfData.customBubble = this.savedAvatarConfig.customBubble;
-      }
-    }
+    const customBubble = (config && config.customBubble) || 'code';
 
-    if (!selfData.avatarData) {
-      selfData.avatarData = {
-        species: selfData.species || 'CAT',
-        hair: 'spiky',
-        hairColor: '#FFE66D',
-        outfit: 'hoodie',
-        outfitColor: selfData.shirtColor || '#4ECDC4'
-      };
-    }
-    if (!selfData.customBubble) {
-      selfData.customBubble = 'code';
-    }
+    // 起點座標: 優先取伺服器指派或預設安全起點 (例如 x: 400, y: 300)
+    const startX = typeof serverPlayer.x === 'number' && !isNaN(serverPlayer.x) ? serverPlayer.x : 400;
+    const startY = typeof serverPlayer.y === 'number' && !isNaN(serverPlayer.y) ? serverPlayer.y : 300;
 
-    console.log(`[Scene] 🎮 生成複合主角: ${selfData.name} (${selfData.species})`, selfData.avatarData, selfData.customBubble);
+    const selfData = {
+      id: selfId,
+      name,
+      species,
+      shirtColor,
+      avatarData,
+      customBubble,
+      x: startX,
+      y: startY
+    };
 
-    // 1. 建立玩家物理精靈 (Arcade Dynamic Body - 碰撞體積)
-    this.player = this.physics.add.sprite(selfData.x, selfData.y, `avatar_base_${selfData.species}_down_0`);
+    console.log(`[Scene] 🎮 正式生成主角實體: ${selfData.name} (${selfData.species}) at (${selfData.x}, ${selfData.y})`, selfData);
+
+    // 1. 建立玩家物理精靈 (Arcade Dynamic Body - 核心判定體與基礎身體外觀)
+    const baseKey = `avatar_base_${selfData.species}_down_0`;
+    const fallbackKey = `avatar_${selfData.species}_down_0`;
+    const textureToUse = this.textures.exists(baseKey) ? baseKey : (this.textures.exists(fallbackKey) ? fallbackKey : null);
+
+    this.player = this.physics.add.sprite(selfData.x, selfData.y, textureToUse);
     this.player.setSize(22, 16);
     this.player.setOffset(13, 34); // 腳底碰撞判定盒
     this.player.setCollideWorldBounds(true);
-    this.player.setVisible(false); // 物理判定體本身設為隱形，視覺由 playerContainer 統一分層呈現
+    this.player.setVisible(true); // 關鍵修復: 確保本體精靈可視，徹底杜絕隱形黑屏！
+    this.playerBaseSprite = this.player;
 
     // 實體間物理碰撞 (Player vs Static Furniture & Walls)
     this.physics.add.collider(this.player, this.staticColliders);
 
-    // 2. 建立本地外觀複合容器 (Composite Container: Base + Outfit + Hair + Name + Bubble + Item)
+    // 2. 建立本地外觀複合容器 (Composite Container: Shadow + Outfit + Hair + Name Tag + Bubble + Food Icon)
     this.playerContainer = this.add.container(selfData.x, selfData.y);
     this.playerContainer.setDepth(selfData.y);
 
@@ -542,29 +617,27 @@ export class MainScene extends Phaser.Scene {
     const shadow = this.add.ellipse(0, 22, 28, 10, 0x000000, 0.2);
     this.playerContainer.add(shadow);
 
-    // 2.2 底層身體外觀精靈 (Base Body Frame: 身體、大頭、圓潤耳朵、五官)
-    const baseKey = `avatar_base_${selfData.species}_down_0`;
-    this.playerBaseSprite = this.add.sprite(0, 0, baseKey);
-    this.playerContainer.add(this.playerBaseSprite);
-    this.playerSprite = this.playerBaseSprite; // 向下相容參照
-
-    // 2.3 衣服款式精靈 (Outfit Layer) 搭配動態色彩 Tint
+    // 2.2 衣服款式精靈 (Outfit Layer) 搭配動態色彩 Tint
     const outfitKey = `outfit_${selfData.avatarData.outfit}_down_0`;
-    this.playerOutfitSprite = this.add.sprite(0, 0, outfitKey);
-    const outfitColorHex = selfData.avatarData.outfitColor || selfData.shirtColor || '#4ECDC4';
-    const outfitTint = parseInt(outfitColorHex.replace('#', '0x'), 16);
-    this.playerOutfitSprite.setTint(outfitTint);
-    this.playerContainer.add(this.playerOutfitSprite);
+    if (this.textures.exists(outfitKey)) {
+      this.playerOutfitSprite = this.add.sprite(0, 0, outfitKey);
+      const outfitColorHex = selfData.avatarData.outfitColor || selfData.shirtColor || '#4ECDC4';
+      const outfitTint = parseInt(outfitColorHex.replace('#', '0x'), 16);
+      if (!isNaN(outfitTint)) this.playerOutfitSprite.setTint(outfitTint);
+      this.playerContainer.add(this.playerOutfitSprite);
+    }
 
-    // 2.4 髮型款式精靈 (Hair Layer) 搭配動態色彩 Tint
+    // 2.3 髮型款式精靈 (Hair Layer) 搭配動態色彩 Tint
     const hairKey = `hair_${selfData.avatarData.hair}_down`;
-    this.playerHairSprite = this.add.sprite(0, 0, hairKey);
-    const hairColorHex = selfData.avatarData.hairColor || '#FFE66D';
-    const hairTint = parseInt(hairColorHex.replace('#', '0x'), 16);
-    this.playerHairSprite.setTint(hairTint);
-    this.playerContainer.add(this.playerHairSprite);
+    if (this.textures.exists(hairKey)) {
+      this.playerHairSprite = this.add.sprite(0, 0, hairKey);
+      const hairColorHex = selfData.avatarData.hairColor || '#FFE66D';
+      const hairTint = parseInt(hairColorHex.replace('#', '0x'), 16);
+      if (!isNaN(hairTint)) this.playerHairSprite.setTint(hairTint);
+      this.playerContainer.add(this.playerHairSprite);
+    }
 
-    // 2.5 主角頭頂可愛金色姓名標籤 (Gold Name Tag)
+    // 2.4 主角頭頂可愛金色姓名標籤 (Gold Name Tag)
     const nameBg = this.add.graphics();
     nameBg.fillStyle(0xFFF9E6, 0.95);
     nameBg.lineStyle(2, 0xF59E0B, 1);
@@ -580,24 +653,25 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.playerContainer.add(this.playerNameText);
 
-    // 2.6 自訂頭頂跟隨狀態泡泡徽章 (Customizable Overhead Tailing Bubble)
-    this.playerBubbleContainer = this.add.container(0, -50);
-    this.playerBubbleSprite = this.add.sprite(0, 0, `bubble_badge_${selfData.customBubble}`);
-    this.playerBubbleSprite.setScale(0.85);
-    this.playerBubbleContainer.add(this.playerBubbleSprite);
-    this.playerContainer.add(this.playerBubbleContainer);
+    // 2.5 自訂頭頂跟隨狀態泡泡徽章 (扁平層級直接加入 playerContainer，杜絕巢狀 Container WebGL 渲染異常)
+    const bubbleKey = `bubble_badge_${selfData.customBubble}`;
+    if (this.textures.exists(bubbleKey)) {
+      this.playerBubbleSprite = this.add.sprite(0, -50, bubbleKey);
+      this.playerBubbleSprite.setScale(0.85);
+      this.playerContainer.add(this.playerBubbleSprite);
 
-    // 泡泡懸浮微動緩動動畫 (Sine Floating Tween)
-    this.tweens.add({
-      targets: this.playerBubbleContainer,
-      y: -54,
-      duration: 1200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
+      // 泡泡懸浮微動緩動動畫 (Sine Floating Tween)
+      this.tweens.add({
+        targets: this.playerBubbleSprite,
+        y: -54,
+        duration: 1200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    }
 
-    // 2.7 手持食物懸浮圖標
+    // 2.6 手持食物懸浮圖標
     this.playerFoodIcon = this.add.sprite(14, 8, 'item_coke');
     this.playerFoodIcon.setScale(0.85);
     this.playerFoodIcon.setVisible(false);
@@ -611,7 +685,7 @@ export class MainScene extends Phaser.Scene {
     this.playerData = selfData;
 
     // 若本地有持久化裝扮，主動廣播最新裝扮至伺服器
-    if (this.savedAvatarConfig && this.network && this.network.sendUpdateAvatar) {
+    if (this.network && this.network.sendUpdateAvatar) {
       this.network.sendUpdateAvatar({
         name: selfData.name,
         species: selfData.species,
@@ -623,6 +697,36 @@ export class MainScene extends Phaser.Scene {
     // 更新 HUD 玩家姓名
     const hudName = document.getElementById('hud-player-name');
     if (hudName) hudName.textContent = selfData.name;
+  }
+
+  /**
+   * 首次創角流程完成回調 (Called when new user submits welcome-customizer-popup)
+   */
+  onNewUserCompleteAvatar(newAvatarData) {
+    console.log('[Scene] 🎉 首次創角完成，開始正式生成角色實體:', newAvatarData);
+    this.savedAvatarConfig = newAvatarData;
+    this.isSpawnBlocked = false;
+
+    // 取得暫存的伺服器快照或預設起點
+    const initPayload = this.pendingInitData || {
+      selfId: (this.network && this.network.selfId) || 'player',
+      players: []
+    };
+
+    // 正式生成本地角色
+    this.spawnLocalPlayer(initPayload, newAvatarData);
+
+    // 網路層同步
+    if (this.network) {
+      if (this.network.sendUpdateAvatar) {
+        this.network.sendUpdateAvatar(newAvatarData);
+      }
+      if (this.network.sendMoveImmediate) {
+        this.network.sendMoveImmediate();
+      }
+    }
+
+    this.showSystemNotice(`🎉 歡迎入職！同事 ${newAvatarData.name}，請自由探索辦公室！`);
   }
 
   // ==========================================================================
@@ -715,7 +819,7 @@ export class MainScene extends Phaser.Scene {
    * 更新主角精靈幀、踏步動畫、衣服與髮型多層複合圖層
    */
   updatePlayerVisuals(dir, isSit = false, isWalk = false) {
-    if (!this.playerBaseSprite || !this.playerData) return;
+    if (!this.player || !this.playerData) return;
 
     let frame = 0;
     if (isSit) {
@@ -725,7 +829,8 @@ export class MainScene extends Phaser.Scene {
       frame = tick === 0 ? 1 : 2;
     }
 
-    const species = (this.playerData.avatarData && this.playerData.avatarData.species) || this.playerData.species || 'CAT';
+    const rawSpecies = (this.playerData.avatarData && this.playerData.avatarData.species) || this.playerData.species || 'CAT';
+    const species = ['CAT', 'BEAR', 'BUNNY', 'PUPPY'].includes(String(rawSpecies).toUpperCase()) ? String(rawSpecies).toUpperCase() : 'CAT';
     const hair = (this.playerData.avatarData && this.playerData.avatarData.hair) || 'spiky';
     const hairColor = (this.playerData.avatarData && this.playerData.avatarData.hairColor) || '#FFE66D';
     const outfit = (this.playerData.avatarData && this.playerData.avatarData.outfit) || 'hoodie';
@@ -733,8 +838,11 @@ export class MainScene extends Phaser.Scene {
 
     // 1. 底層身體與面部 (Base Body Frame)
     const baseKey = `avatar_base_${species}_${dir}_${frame}`;
+    const fallbackKey = `avatar_${species}_${dir}_${frame}`;
     if (this.textures.exists(baseKey)) {
-      this.playerBaseSprite.setTexture(baseKey);
+      this.player.setTexture(baseKey);
+    } else if (this.textures.exists(fallbackKey)) {
+      this.player.setTexture(fallbackKey);
     }
 
     // 2. 衣服款式 (Outfit Layer) 搭配色彩 Tint 濾鏡著色
@@ -742,7 +850,7 @@ export class MainScene extends Phaser.Scene {
     if (this.playerOutfitSprite && this.textures.exists(outfitKey)) {
       this.playerOutfitSprite.setTexture(outfitKey);
       const hex = parseInt(outfitColor.replace('#', '0x'), 16);
-      this.playerOutfitSprite.setTint(hex);
+      if (!isNaN(hex)) this.playerOutfitSprite.setTint(hex);
     }
 
     // 3. 髮型款式 (Hair Layer) 搭配色彩 Tint 濾鏡著色
@@ -750,7 +858,7 @@ export class MainScene extends Phaser.Scene {
     if (this.playerHairSprite && this.textures.exists(hairKey)) {
       this.playerHairSprite.setTexture(hairKey);
       const hex = parseInt(hairColor.replace('#', '0x'), 16);
-      this.playerHairSprite.setTint(hex);
+      if (!isNaN(hex)) this.playerHairSprite.setTint(hex);
     }
 
     // 4. 頭頂跟隨自訂狀態徽章/泡泡 (Overhead Tailing Bubble Badge)

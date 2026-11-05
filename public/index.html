@@ -482,6 +482,145 @@
     </div>
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- 14. 首次入職強制創角與命名攔截彈窗 (#welcome-customizer-popup) -->
+  <!-- ========================================================================= -->
+  <div id="welcome-customizer-popup" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+    <div class="temple-glass-card !bg-white/95 w-full max-w-lg p-6 relative shadow-2xl rounded-3xl border-2 border-emerald-300 max-h-[92vh] overflow-y-auto animate-fadeIn">
+      
+      <!-- 標題與引導說明 -->
+      <div class="flex items-center gap-3 mb-4 border-b border-emerald-200 pb-3">
+        <div class="text-3xl">🍃</div>
+        <div>
+          <h2 class="font-black text-lg text-emerald-950">歡迎入職 2D 虛擬辦公室！</h2>
+          <p class="text-[11px] text-slate-500 font-bold">首次登入報到，請建立您的動森胖嘟嘟專屬虛擬化身</p>
+        </div>
+      </div>
+
+      <form id="welcome-custom-form" class="space-y-4 text-xs font-bold text-slate-700">
+        <!-- 1. 角色暱稱/名字 (必填驗證) -->
+        <div>
+          <label class="block text-slate-700 font-extrabold mb-1">
+            🏷️ 請輸入你的角色暱稱 / 名字 <span class="text-rose-500">*</span>:
+          </label>
+          <input 
+            id="welcome-name-input" 
+            type="text" 
+            placeholder="例如: 泡泡龍 / Kopi Master" 
+            maxlength="15" 
+            required
+            class="w-full px-3.5 py-2.5 text-xs font-bold rounded-xl border-2 border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          />
+          <p id="welcome-name-error" class="hidden text-rose-500 text-[11px] font-bold mt-1">⚠️ 請輸入角色暱稱，名字不可為空！</p>
+        </div>
+
+        <!-- 2. 動物耳朵品種 (Species) -->
+        <div>
+          <label class="block text-slate-600 mb-1">🐾 選擇動物耳朵品種 (Species):</label>
+          <div class="grid grid-cols-4 gap-2" id="welcome-species-group">
+            <button type="button" class="welcome-species-btn p-2 rounded-xl border-2 border-emerald-500 bg-emerald-100 ring-2 ring-emerald-400 flex flex-col items-center hover:bg-emerald-50 transition" data-species="CAT">
+              <span class="text-xl">🐱</span>
+              <span class="text-[11px] mt-1 font-extrabold">貓咪 Cat</span>
+            </button>
+            <button type="button" class="welcome-species-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:bg-slate-50 transition" data-species="BEAR">
+              <span class="text-xl">🐻</span>
+              <span class="text-[11px] mt-1 font-extrabold">棕熊 Bear</span>
+            </button>
+            <button type="button" class="welcome-species-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:bg-slate-50 transition" data-species="BUNNY">
+              <span class="text-xl">🐰</span>
+              <span class="text-[11px] mt-1 font-extrabold">萌兔 Bunny</span>
+            </button>
+            <button type="button" class="welcome-species-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:bg-slate-50 transition" data-species="PUPPY">
+              <span class="text-xl">🐶</span>
+              <span class="text-[11px] mt-1 font-extrabold">垂耳 Puppy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. 髮型款式與髮色 (Hair & Color) -->
+        <div class="p-3 bg-amber-50/70 rounded-2xl border border-amber-200">
+          <label class="block text-amber-900 mb-1">💇 髮型款式 (Hair Style) & 髮色 (Color Tint):</label>
+          <div class="grid grid-cols-4 gap-2 mb-2" id="welcome-hair-group">
+            <button type="button" class="welcome-hair-btn p-1.5 rounded-lg border-2 border-amber-500 bg-amber-100 ring-2 ring-amber-400 text-[11px] font-black" data-hair="spiky">刺蝟頭 Spiky</button>
+            <button type="button" class="welcome-hair-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-hair="bob">波波頭 Bob</button>
+            <button type="button" class="welcome-hair-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-hair="ponytail">馬尾 Ponytail</button>
+            <button type="button" class="welcome-hair-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-hair="cap">休閒帽 Cap</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] text-amber-800 font-extrabold">調色盤:</span>
+            <div class="flex items-center gap-1.5" id="welcome-hair-colors">
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#FFE66D" data-color="#FFE66D"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#BC6C25" data-color="#BC6C25"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#2B2D42" data-color="#2B2D42"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#FF6B6B" data-color="#FF6B6B"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#00BBF9" data-color="#00BBF9"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#A8DADC" data-color="#A8DADC"></span>
+            </div>
+            <input type="color" id="welcome-hair-hex" value="#FFE66D" class="w-6 h-6 rounded cursor-pointer border-0 p-0 ml-auto" />
+          </div>
+        </div>
+
+        <!-- 4. 衣服款式與配色 (Outfit & Color) -->
+        <div class="p-3 bg-teal-50/70 rounded-2xl border border-teal-200">
+          <label class="block text-teal-900 mb-1">👔 衣服款式 (Outfit Style) & 服飾染色 (Color Tint):</label>
+          <div class="grid grid-cols-4 gap-2 mb-2" id="welcome-outfit-group">
+            <button type="button" class="welcome-outfit-btn p-1.5 rounded-lg border-2 border-teal-500 bg-teal-100 ring-2 ring-teal-400 text-[11px] font-black" data-outfit="hoodie">連帽衫 Hoodie</button>
+            <button type="button" class="welcome-outfit-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-outfit="suit">精英西裝 Suit</button>
+            <button type="button" class="welcome-outfit-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-outfit="apron">咖啡圍裙 Apron</button>
+            <button type="button" class="welcome-outfit-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-outfit="sweater">麻花毛衣 Sweater</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] text-teal-800 font-extrabold">調色盤:</span>
+            <div class="flex items-center gap-1.5" id="welcome-outfit-colors">
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#4ECDC4" data-color="#4ECDC4"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#FF6B6B" data-color="#FF6B6B"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#1A535C" data-color="#1A535C"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#9B5DE5" data-color="#9B5DE5"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#F7B267" data-color="#F7B267"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#3A86FF" data-color="#3A86FF"></span>
+            </div>
+            <input type="color" id="welcome-outfit-hex" value="#4ECDC4" class="w-6 h-6 rounded cursor-pointer border-0 p-0 ml-auto" />
+          </div>
+        </div>
+
+        <!-- 5. 頭頂跟隨狀態泡泡 (Tailing Status Bubble) -->
+        <div>
+          <label class="block text-slate-600 mb-1">💭 頭頂跟隨專屬狀態泡泡:</label>
+          <div class="grid grid-cols-7 gap-1.5" id="welcome-bubble-group">
+            <button type="button" class="welcome-bubble-btn p-2 rounded-xl border-2 border-emerald-400 bg-emerald-50 flex flex-col items-center hover:scale-105 transition" data-bubble="code" title="Coding">
+              <span class="text-base">💻</span>
+            </button>
+            <button type="button" class="welcome-bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="coffee" title="Coffee Time">
+              <span class="text-base">☕</span>
+            </button>
+            <button type="button" class="welcome-bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="rocket" title="Ship It!">
+              <span class="text-base">🚀</span>
+            </button>
+            <button type="button" class="welcome-bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="sleep" title="Power Nap">
+              <span class="text-base">💤</span>
+            </button>
+            <button type="button" class="welcome-bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="star" title="VIP Star">
+              <span class="text-base">🌟</span>
+            </button>
+            <button type="button" class="welcome-bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="leaf" title="Cozy Leaf">
+              <span class="text-base">🍃</span>
+            </button>
+            <button type="button" class="welcome-bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="fire" title="On Fire">
+              <span class="text-base">🔥</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 6. 確認按鈕 -->
+        <div class="pt-2">
+          <button type="button" id="welcome-submit-btn" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm shadow-xl hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer">
+            <span>開始進入辦公室 🏃</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     const guideModal = document.getElementById('guide-modal');
     document.getElementById('btn-toggle-guide').onclick = () => guideModal.classList.remove('hidden');

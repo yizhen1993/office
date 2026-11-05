@@ -63,6 +63,7 @@ export class UIManager {
     this.initFridgeModal();
     this.initMediaControls();
     this.initAvatarPickerModal();
+    this.initWelcomePopup();
     this.initYoutubeControlStick();
   }
 
@@ -545,6 +546,222 @@ export class UIManager {
     if (this.avatarModal) {
       this.avatarModal.classList.add('hidden');
     }
+  }
+
+  // ==========================================================================
+  // 5.7 首次入職強制創角彈窗 (Welcome Customizer Popup)
+  // ==========================================================================
+  initWelcomePopup() {
+    this.welcomeModal = document.getElementById('welcome-customizer-popup');
+    if (!this.welcomeModal) return;
+
+    this.welcomeAvatarState = {
+      name: '',
+      species: 'CAT',
+      hair: 'spiky',
+      hairColor: '#FFE66D',
+      outfit: 'hoodie',
+      outfitColor: '#4ECDC4',
+      customBubble: 'code'
+    };
+
+    const nameInput = document.getElementById('welcome-name-input');
+    const submitBtn = document.getElementById('welcome-submit-btn');
+    const hairHex = document.getElementById('welcome-hair-hex');
+    const outfitHex = document.getElementById('welcome-outfit-hex');
+    const errorEl = document.getElementById('welcome-name-error');
+
+    // 1. 動物耳朵品種
+    const speciesBtns = document.querySelectorAll('#welcome-species-group .welcome-species-btn');
+    speciesBtns.forEach(btn => {
+      btn.onclick = () => {
+        const species = btn.getAttribute('data-species');
+        this.welcomeAvatarState.species = species;
+        speciesBtns.forEach(b => {
+          b.classList.remove('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+          b.classList.add('border-slate-200', 'bg-white');
+        });
+        btn.classList.remove('border-slate-200', 'bg-white');
+        btn.classList.add('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+      };
+    });
+
+    // 2. 髮型款式
+    const hairBtns = document.querySelectorAll('#welcome-hair-group .welcome-hair-btn');
+    hairBtns.forEach(btn => {
+      btn.onclick = () => {
+        const hair = btn.getAttribute('data-hair');
+        this.welcomeAvatarState.hair = hair;
+        hairBtns.forEach(b => {
+          b.classList.remove('border-amber-500', 'bg-amber-100', 'ring-2', 'ring-amber-400');
+          b.classList.add('border-slate-200', 'bg-white');
+        });
+        btn.classList.remove('border-slate-200', 'bg-white');
+        btn.classList.add('border-amber-500', 'bg-amber-100', 'ring-2', 'ring-amber-400');
+      };
+    });
+
+    // 2.1 髮色調色盤
+    const hairSwatches = document.querySelectorAll('#welcome-hair-colors .color-swatch');
+    hairSwatches.forEach(swatch => {
+      swatch.onclick = () => {
+        const color = swatch.getAttribute('data-color');
+        this.welcomeAvatarState.hairColor = color;
+        if (hairHex) hairHex.value = color;
+      };
+    });
+    if (hairHex) {
+      hairHex.oninput = (e) => {
+        this.welcomeAvatarState.hairColor = e.target.value;
+      };
+    }
+
+    // 3. 衣服款式
+    const outfitBtns = document.querySelectorAll('#welcome-outfit-group .welcome-outfit-btn');
+    outfitBtns.forEach(btn => {
+      btn.onclick = () => {
+        const outfit = btn.getAttribute('data-outfit');
+        this.welcomeAvatarState.outfit = outfit;
+        outfitBtns.forEach(b => {
+          b.classList.remove('border-teal-500', 'bg-teal-100', 'ring-2', 'ring-teal-400');
+          b.classList.add('border-slate-200', 'bg-white');
+        });
+        btn.classList.remove('border-slate-200', 'bg-white');
+        btn.classList.add('border-teal-500', 'bg-teal-100', 'ring-2', 'ring-teal-400');
+      };
+    });
+
+    // 3.1 衣服配色
+    const outfitSwatches = document.querySelectorAll('#welcome-outfit-colors .color-swatch');
+    outfitSwatches.forEach(swatch => {
+      swatch.onclick = () => {
+        const color = swatch.getAttribute('data-color');
+        this.welcomeAvatarState.outfitColor = color;
+        if (outfitHex) outfitHex.value = color;
+      };
+    });
+    if (outfitHex) {
+      outfitHex.oninput = (e) => {
+        this.welcomeAvatarState.outfitColor = e.target.value;
+      };
+    }
+
+    // 4. 頭頂狀態泡泡
+    const bubbleBtns = document.querySelectorAll('#welcome-bubble-group .welcome-bubble-btn');
+    bubbleBtns.forEach(btn => {
+      btn.onclick = () => {
+        const bubble = btn.getAttribute('data-bubble');
+        this.welcomeAvatarState.customBubble = bubble;
+        bubbleBtns.forEach(b => {
+          b.classList.remove('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+          b.classList.add('border-slate-200', 'bg-white');
+        });
+        btn.classList.remove('border-slate-200', 'bg-white');
+        btn.classList.add('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+      };
+    });
+
+    // 5. 點擊提交按鈕
+    if (submitBtn) {
+      submitBtn.onclick = (e) => {
+        e.preventDefault();
+        this.submitWelcomeCustomizer();
+      };
+    }
+
+    const welcomeForm = document.getElementById('welcome-custom-form');
+    if (welcomeForm) {
+      welcomeForm.onsubmit = (e) => {
+        e.preventDefault();
+        this.submitWelcomeCustomizer();
+      };
+    }
+
+    if (nameInput) {
+      nameInput.oninput = () => {
+        if (errorEl && nameInput.value.trim().length > 0) {
+          errorEl.classList.add('hidden');
+          nameInput.classList.remove('ring-2', 'ring-rose-400');
+        }
+      };
+    }
+  }
+
+  showWelcomeCustomizerPopup() {
+    if (!this.welcomeModal) {
+      this.welcomeModal = document.getElementById('welcome-customizer-popup');
+    }
+    if (this.welcomeModal) {
+      this.welcomeModal.classList.remove('hidden');
+      const nameInput = document.getElementById('welcome-name-input');
+      if (nameInput) {
+        setTimeout(() => nameInput.focus(), 150);
+      }
+    }
+  }
+
+  hideWelcomeCustomizerPopup() {
+    if (!this.welcomeModal) {
+      this.welcomeModal = document.getElementById('welcome-customizer-popup');
+    }
+    if (this.welcomeModal) {
+      this.welcomeModal.classList.add('hidden');
+    }
+  }
+
+  submitWelcomeCustomizer() {
+    const nameInput = document.getElementById('welcome-name-input');
+    const errorEl = document.getElementById('welcome-name-error');
+    const name = nameInput ? nameInput.value.trim() : '';
+
+    if (!name) {
+      if (errorEl) errorEl.classList.remove('hidden');
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.classList.add('ring-2', 'ring-rose-400');
+      }
+      return;
+    }
+
+    if (errorEl) errorEl.classList.add('hidden');
+    if (nameInput) nameInput.classList.remove('ring-2', 'ring-rose-400');
+
+    const species = this.welcomeAvatarState.species || 'CAT';
+    const outfitColor = this.welcomeAvatarState.outfitColor || '#4ECDC4';
+    const hairColor = this.welcomeAvatarState.hairColor || '#FFE66D';
+    const hair = this.welcomeAvatarState.hair || 'spiky';
+    const outfit = this.welcomeAvatarState.outfit || 'hoodie';
+    const customBubble = this.welcomeAvatarState.customBubble || 'code';
+
+    const newAvatarData = {
+      name: name,
+      species: species,
+      shirtColor: outfitColor,
+      avatarData: {
+        species: species,
+        hair: hair,
+        hairColor: hairColor,
+        outfit: outfit,
+        outfitColor: outfitColor
+      },
+      customBubble: customBubble
+    };
+
+    // 1. 本地快取保存 (LocalStorage Persistence)
+    try {
+      localStorage.setItem('chubby_office_avatar', JSON.stringify(newAvatarData));
+      console.log('[Avatar] 💾 成功寫入本地快取 chubby_office_avatar:', newAvatarData);
+    } catch (err) {
+      console.warn('[Avatar] 寫入 localStorage 失敗:', err);
+    }
+
+    // 2. 解鎖並通知場景正式 Spawn 角色
+    if (this.scene && this.scene.onNewUserCompleteAvatar) {
+      this.scene.onNewUserCompleteAvatar(newAvatarData);
+    }
+
+    // 3. 隱藏彈窗
+    this.hideWelcomeCustomizerPopup();
   }
 
   // ==========================================================================
