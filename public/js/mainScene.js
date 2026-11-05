@@ -271,7 +271,7 @@ export class MainScene extends Phaser.Scene {
           cpu.setDepth(dy + 1);
 
           // C. 旋轉人體工學椅 (Swivel Office Chair: 舒適後移並完美對準桌面工作區)
-          const chairY = dy + 38;
+          const chairY = dy + 48;
           const chair = this.add.image(dx - 18, chairY, 'office_chair');
           chair.setDepth(chairY - 1); // 椅子比桌子稍前，可被玩家坐下覆蓋
 
@@ -281,7 +281,7 @@ export class MainScene extends Phaser.Scene {
             x: dx - 18,
             y: chairY,
             sitX: dx - 18,
-            sitY: chairY - 12,
+            sitY: chairY - 14,
             dir: 'up',
             standX: dx - 18,
             standY: chairY + 32
@@ -331,7 +331,7 @@ export class MainScene extends Phaser.Scene {
         x: seat.x,
         y: seat.y,
         sitX: seat.x,
-        sitY: seat.y - 12,
+        sitY: seat.y - 6,
         dir: 'up',
         standX: seat.x,
         standY: seat.y + 36
@@ -372,9 +372,9 @@ export class MainScene extends Phaser.Scene {
     this.chairs.push({
       id: 'arcade_couch_left',
       x: lounge.x - 2,
-      y: lounge.y - 20,
+      y: lounge.y,
       sitX: lounge.x - 2,
-      sitY: lounge.y - 36,
+      sitY: lounge.y - 40,
       dir: 'up',
       standX: lounge.x - 2,
       standY: lounge.y + 45
@@ -382,9 +382,9 @@ export class MainScene extends Phaser.Scene {
     this.chairs.push({
       id: 'arcade_couch_right',
       x: lounge.x + 46,
-      y: lounge.y - 20,
+      y: lounge.y,
       sitX: lounge.x + 46,
-      sitY: lounge.y - 36,
+      sitY: lounge.y - 40,
       dir: 'up',
       standX: lounge.x + 46,
       standY: lounge.y + 45
@@ -422,7 +422,7 @@ export class MainScene extends Phaser.Scene {
         x: pantry.x + offset,
         y: stoolY,
         sitX: pantry.x + offset,
-        sitY: stoolY - 12,
+        sitY: stoolY - 4,
         dir: 'up',
         standX: pantry.x + offset,
         standY: stoolY + 36
@@ -486,7 +486,7 @@ export class MainScene extends Phaser.Scene {
       y: s1.y,
       radius: 45,
       sitX: s1.x + 40,
-      sitY: s1.y - 12,
+      sitY: s1.y - 4,
       dir: 'down',
       standX: s1.x + 40,
       standY: s1.y + 36,
@@ -500,7 +500,7 @@ export class MainScene extends Phaser.Scene {
       y: s2.y,
       radius: 45,
       sitX: s2.x + 30,
-      sitY: s2.y - 12,
+      sitY: s2.y - 4,
       dir: 'down',
       standX: s2.x + 30,
       standY: s2.y + 36,
@@ -791,6 +791,7 @@ export class MainScene extends Phaser.Scene {
     // 2.1 底部陰影
     const shadow = this.add.ellipse(0, 22, 28, 10, 0x000000, 0.2);
     this.playerContainer.add(shadow);
+    this.playerShadow = shadow;
 
     // 2.2 衣服款式精靈 (Outfit Layer) 搭配動態色彩 Tint
     const outfitKey = `outfit_${selfData.avatarData.outfit}_down_0`;
@@ -942,13 +943,17 @@ export class MainScene extends Phaser.Scene {
       // 坐姿狀態: 速度全歸零，鎖死所有移動與精確對齊坐姿座標
       const chair = this.mutexMachine.activeChair;
       if (chair) {
+        if (this.playerShadow) {
+          this.playerShadow.setVisible(false);
+        }
         const sitX = chair.sitX !== undefined ? chair.sitX : chair.x;
-        const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 12);
+        const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 4);
         const sitDir = chair.dir || 'up';
+        const chairDepth = chair.depth !== undefined ? chair.depth : (chair.y + 2);
         this.player.setPosition(sitX, sitY);
         this.playerContainer.setPosition(sitX, sitY);
-        this.playerContainer.setDepth(chair.y + 2);
-        this.player.setDepth(chair.y + 2);
+        this.playerContainer.setDepth(chairDepth);
+        this.player.setDepth(chairDepth);
         this.currentAnimKey = `sit_${sitDir}`;
         this.updatePlayerVisuals(sitDir, true, false);
       }
@@ -1234,9 +1239,14 @@ export class MainScene extends Phaser.Scene {
 
     this.mutexMachine.enterSit(chair, this.player);
 
+    if (this.playerShadow) {
+      this.playerShadow.setVisible(false);
+    }
+
     const sitX = chair.sitX !== undefined ? chair.sitX : chair.x;
-    const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 12);
+    const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 4);
     const sitDir = chair.dir || 'up';
+    const chairDepth = chair.depth !== undefined ? chair.depth : (chair.y + 2);
 
     // 禁用物理實體碰撞分離，防止坐姿時被固態家具排擠偏移
     if (this.player && this.player.body) {
@@ -1247,8 +1257,8 @@ export class MainScene extends Phaser.Scene {
     // 平滑瞬移坐入椅子精確位置
     this.player.setPosition(sitX, sitY);
     this.playerContainer.setPosition(sitX, sitY);
-    this.playerContainer.setDepth(chair.y + 2);
-    this.player.setDepth(chair.y + 2);
+    this.playerContainer.setDepth(chairDepth);
+    this.player.setDepth(chairDepth);
 
     this.currentAnimKey = `sit_${sitDir}`;
     this.updatePlayerVisuals(sitDir, true, false);
@@ -1282,6 +1292,10 @@ export class MainScene extends Phaser.Scene {
     const standY = chair && chair.standY !== undefined ? chair.standY : (this.player.y + 26);
 
     this.mutexMachine.standUp(this.player);
+
+    if (this.playerShadow) {
+      this.playerShadow.setVisible(true);
+    }
 
     // 恢復實體物理運動與碰撞檢測
     if (this.player && this.player.body) {

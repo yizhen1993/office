@@ -368,7 +368,8 @@ export class NetworkManager {
       anim: pData.anim || 'idle',
       heldItem: pData.heldItem || 'none',
       isSprinting: pData.isSprinting,
-      isSitting: pData.isSitting
+      isSitting: pData.isSitting,
+      shadow
     };
 
     this.remotePlayers.set(pData.id, remoteEntry);
@@ -391,6 +392,10 @@ export class NetworkManager {
     } else if (anim.startsWith('walk')) {
       const tick = Math.floor(this.scene.time.now / 140) % 2;
       frame = tick === 0 ? 1 : 2;
+    }
+
+    if (remote.shadow) {
+      remote.shadow.setVisible(!remote.isSitting);
     }
 
     const species = (remote.avatarData && remote.avatarData.species) || remote.species || 'CAT';
