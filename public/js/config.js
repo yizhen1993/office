@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * 2D Multiplayer Virtual Office — 全局配置模組 (Game Config)
- * 定義 Phaser 3 引擎參數、世界座標邊界、圖層深度層次 (Z-Index Hierarchy) 與速度常數
+ * 規格依據: Specification Section 1 & 2 (Architecture, Layout, Proximity Rules)
  * ============================================================================
  */
 
@@ -12,22 +12,17 @@ export const GAME_CONFIG = {
 
   // 角色移動速度常數 (Pixels / Sec)
   SPEED_WALK: 160,
-  SPEED_SPRINT_MULTIPLIER: 2.5, // 奔跑時 2.5 倍急速衝刺
+  SPEED_SPRINT_MULTIPLIER: 2.5, // 奔跑時 2.5 倍極速衝刺
   get SPEED_SPRINT() {
     return this.SPEED_WALK * this.SPEED_SPRINT_MULTIPLIER; // 400 px/s
   },
 
   // 深度排序層次 (Z-Index Hierarchy)
-  // Layer 0: 地板材質 (Floor)
-  // Layer 1: 家具底座與固態碰撞體 (Furniture Base)
-  // Layer 2: 桌面交互覆蓋層 (Interactive Overlays)
-  // Layer 3: Y軸動態深度排序實體層 (Y-Sorted Entities: Player, Remote Players, NPC DJ)
-  // Layer 4: UI/DOM 頂層覆蓋層 (UI & Chat Bubbles)
   LAYERS: {
     FLOOR: 0,
     FURNITURE_BASE: 100,
     OVERLAYS: 200,
-    ENTITIES_BASE: 1000, // 實體會依據其 Y 座標實時計算: depth = ENTITIES_BASE + Y
+    ENTITIES_BASE: 1000, // 實體依據 Y 座標動態排序: depth = ENTITIES_BASE + Y
     UI_OVERLAY: 50000
   },
 
@@ -37,8 +32,21 @@ export const GAME_CONFIG = {
     OFFICE_CLUSTER_1: { x: 300, y: 380 },
     OFFICE_CLUSTER_2: { x: 740, y: 380 },
 
-    // 2. 多媒體投影區 (北面大屏幕)
-    MEDIA_SCREEN: { x: 520, y: 130, radius: 75 },
+    // 2. 多媒體投影區 (北面大屏幕 & 專屬 5 個沙發座)
+    MEDIA_SCREEN: {
+      x: 520,
+      y: 130,
+      controlStickRadius: 140, // 規範要求: 120-150px 近距離交互感應棒
+      audioRadius: 380,
+      // 正前方恰好 5 個獨立圓潤沙發座位 (Exactly 5 distinct sofa sitting nodes)
+      sofaSeats: [
+        { id: 'yt_sofa_1', x: 420, y: 220, label: 'Sofa Seat 1' },
+        { id: 'yt_sofa_2', x: 470, y: 220, label: 'Sofa Seat 2' },
+        { id: 'yt_sofa_3', x: 520, y: 220, label: 'Sofa Seat 3' },
+        { id: 'yt_sofa_4', x: 570, y: 220, label: 'Sofa Seat 4' },
+        { id: 'yt_sofa_5', x: 620, y: 220, label: 'Sofa Seat 5' }
+      ]
+    },
 
     // 3. 遊戲娛樂區 (L型沙發 + 復古CRT電視 + PS5)
     ARCADE_LOUNGE: { x: 1220, y: 380, tvPos: { x: 1220, y: 240 } },
@@ -57,6 +65,38 @@ export const GAME_CONFIG = {
     DJ_BOOTH: { x: 1020, y: 150 }
   },
 
+  // 複合角色裝扮樣式選項 (Composite Avatar Customization Options)
+  AVATAR_OPTIONS: {
+    SPECIES: ['CAT', 'BEAR', 'BUNNY', 'PUPPY'],
+    HAIR_STYLES: [
+      { id: 'spiky', name: '俐落刺蝟頭' },
+      { id: 'bob', name: '可愛波波頭' },
+      { id: 'ponytail', name: '元氣馬尾' },
+      { id: 'cap', name: '棒球休閒帽' }
+    ],
+    OUTFIT_STYLES: [
+      { id: 'hoodie', name: '寬鬆連帽衫' },
+      { id: 'suit', name: '商務精英西裝' },
+      { id: 'apron', name: '咖啡師圍裙' },
+      { id: 'sweater', name: '溫暖麻花毛衣' }
+    ],
+    COLOR_PRESETS: [
+      '#FF6B6B', '#4ECDC4', '#FFE66D', '#1A535C',
+      '#F7B267', '#A8DADC', '#E63946', '#9B5DE5',
+      '#00BBF9', '#3A86FF', '#FB5607', '#38B000'
+    ],
+    // 頭頂跟隨自訂狀態徽章/泡泡 (Customizable Overhead Tailing Bubbles)
+    TAILING_BUBBLES: [
+      { id: 'code', icon: '💻', text: 'Coding' },
+      { id: 'coffee', icon: '☕', text: 'Coffee Time' },
+      { id: 'rocket', icon: '🚀', text: 'Ship It!' },
+      { id: 'sleep', icon: '💤', text: 'Power Nap' },
+      { id: 'star', icon: '🌟', text: 'VIP Star' },
+      { id: 'leaf', icon: '🍃', text: 'Cozy Mood' },
+      { id: 'fire', icon: '🔥', text: 'On Fire' }
+    ]
+  },
+
   // 溫馨動森黏土調色盤 (Animal Crossing Clay Palette)
   PALETTE: {
     FLOOR_WOOD_LIGHT: '#F4ECE1',
@@ -66,12 +106,7 @@ export const GAME_CONFIG = {
     FLOOR_RESTROOM_TILE: '#D6EAF8',
     RUG_PEACH: '#FFD7C2',
     RUG_MINT: '#B8E1D9',
-    RUG_LAVENDER: '#E2D9F3',
-    DESK_WOOD: '#C99765',
-    DESK_ACCENT: '#9C6635',
-    CHAIR_CUSHION: '#7BC4B2',
-    SOFA_SAGE: '#84A98C',
-    WALL_BEIGE: '#FFF8E7',
-    WALL_BORDER: '#D3C0A6'
+    SOFA_PLUSH: '#A3B18A',
+    SOFA_BASE: '#588157'
   }
 };

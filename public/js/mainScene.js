@@ -32,7 +32,15 @@ export class MainScene extends Phaser.Scene {
     this.player = null;
     this.playerContainer = null;
     this.playerSprite = null;
+    this.playerBaseSprite = null;
+    this.playerOutfitSprite = null;
+    this.playerHairSprite = null;
+    this.playerNameText = null;
+    this.playerBubbleContainer = null;
+    this.playerBubbleSprite = null;
     this.playerFoodIcon = null;
+    this.playerData = null;
+    this.savedAvatarConfig = null;
     this.currentAnimKey = 'idle_down';
 
     // 靜態物理碰撞組 (Static Physics Body Group)
@@ -53,6 +61,21 @@ export class MainScene extends Phaser.Scene {
 
     // NPC DJ
     this.npcDjContainer = null;
+  }
+
+  // ==========================================================================
+  // 0. 本地持久化裝扮讀取 (Init Lifecycle & LocalStorage Cache)
+  // ==========================================================================
+  init() {
+    try {
+      const saved = localStorage.getItem('chubby_office_avatar');
+      if (saved) {
+        this.savedAvatarConfig = JSON.parse(saved);
+        console.log('[Avatar] 📦 成功讀取本地快取裝扮設定:', this.savedAvatarConfig);
+      }
+    } catch (err) {
+      console.warn('[Avatar] ⚠️ 讀取本地快取裝扮設定失敗:', err);
+    }
   }
 
   // ==========================================================================
@@ -236,6 +259,22 @@ export class MainScene extends Phaser.Scene {
     zoneBeacon.strokeCircle(pos.x, pos.y + 45, 45);
     zoneBeacon.fillCircle(pos.x, pos.y + 45, 45);
     zoneBeacon.setDepth(GAME_CONFIG.LAYERS.FLOOR + 2);
+
+    // 嚴格依據規範配置: 正前方恰好 5 個獨立圓潤沙發座位 (Exactly 5 distinct chubby-styled sofa sitting seats/nodes)
+    const sofaConfig = GAME_CONFIG.ZONES.MEDIA_SCREEN.sofaSeats;
+    sofaConfig.forEach((seat) => {
+      const sofa = this.staticColliders.create(seat.x, seat.y, 'sofa_single_seat');
+      sofa.setDepth(seat.y);
+      sofa.refreshBody();
+
+      this.chairs.push({
+        id: seat.id,
+        x: seat.x,
+        y: seat.y - 2,
+        standX: seat.x,
+        standY: seat.y + 30
+      });
+    });
 
     // 註冊近距離感應設施
     this.interactiveObjects.push({
@@ -447,7 +486,7 @@ export class MainScene extends Phaser.Scene {
   // ==========================================================================
 
   /**
-   * 根據伺服器發放的 init_state 生成本地玩家實體
+   * 根據伺服器發放的 init_state 生成本地玩家實體 (支援複合外觀裝扮與本地持久化)
    */
   spawnLocalPlayer(initData) {
     const selfData = initData.players.find(p => p.id === initData.selfId) || {
@@ -458,34 +497,74 @@ export class MainScene extends Phaser.Scene {
       name: 'Player'
     };
 
-    console.log(`[Scene] 🎮 生成主角: ${selfData.name} (${selfData.species})`);
+    // 優先讀取並覆寫本地持久化快取裝扮設定 (Persistent Local Storage Engine)
+    if (this.savedAvatarConfig) {
+      if (this.savedAvatarConfig.name) selfData.name = this.savedAvatarConfig.name;
+      if (this.savedAvatarConfig.species) selfData.species = this.savedAvatarConfig.species;
+      if (this.savedAvatarConfig.avatarData) {
+        selfData.avatarData = this.savedAvatarConfig.avatarData;
+      }
+      if (this.savedAvatarConfig.customBubble) {
+        selfData.customBubble = this.savedAvatarConfig.customBubble;
+      }
+    }
 
-    // 1. 建立玩家物理精靈 (Arcade Dynamic Body)
-    this.player = this.physics.add.sprite(selfData.x, selfData.y, `avatar_${selfData.species}_down_0`);
+    if (!selfData.avatarData) {
+      selfData.avatarData = {
+        species: selfData.species || 'CAT',
+        hair: 'spiky',
+        hairColor: '#FFE66D',
+        outfit: 'hoodie',
+        outfitColor: selfData.shirtColor || '#4ECDC4'
+      };
+    }
+    if (!selfData.customBubble) {
+      selfData.customBubble = 'code';
+    }
+
+    console.log(`[Scene] 🎮 生成複合主角: ${selfData.name} (${selfData.species})`, selfData.avatarData, selfData.customBubble);
+
+    // 1. 建立玩家物理精靈 (Arcade Dynamic Body - 碰撞體積)
+    this.player = this.physics.add.sprite(selfData.x, selfData.y, `avatar_base_${selfData.species}_down_0`);
     this.player.setSize(22, 16);
     this.player.setOffset(13, 34); // 腳底碰撞判定盒
     this.player.setCollideWorldBounds(true);
+    this.player.setVisible(false); // 物理判定體本身設為隱形，視覺由 playerContainer 統一分層呈現
 
     // 實體間物理碰撞 (Player vs Static Furniture & Walls)
     this.physics.add.collider(this.player, this.staticColliders);
 
-    // 2. 建立本地外觀復合容器 (Name Tag & Food Hand Layout)
+    // 2. 建立本地外觀複合容器 (Composite Container: Base + Outfit + Hair + Name + Bubble + Item)
     this.playerContainer = this.add.container(selfData.x, selfData.y);
     this.playerContainer.setDepth(selfData.y);
 
-    // 陰影
+    // 2.1 底部陰影
     const shadow = this.add.ellipse(0, 22, 28, 10, 0x000000, 0.2);
     this.playerContainer.add(shadow);
 
-    // 主角外觀精靈
-    this.playerSprite = this.add.sprite(0, 0, `avatar_${selfData.species}_down_0`);
-    if (selfData.shirtColor) {
-      const hex = parseInt(selfData.shirtColor.replace('#', '0x'), 16);
-      this.playerSprite.setTint(hex);
-    }
-    this.playerContainer.add(this.playerSprite);
+    // 2.2 底層身體外觀精靈 (Base Body Frame: 身體、大頭、圓潤耳朵、五官)
+    const baseKey = `avatar_base_${selfData.species}_down_0`;
+    this.playerBaseSprite = this.add.sprite(0, 0, baseKey);
+    this.playerContainer.add(this.playerBaseSprite);
+    this.playerSprite = this.playerBaseSprite; // 向下相容參照
 
-    // 主角頭頂可愛金色姓名標籤 (Gold Name Tag)
+    // 2.3 衣服款式精靈 (Outfit Layer) 搭配動態色彩 Tint
+    const outfitKey = `outfit_${selfData.avatarData.outfit}_down_0`;
+    this.playerOutfitSprite = this.add.sprite(0, 0, outfitKey);
+    const outfitColorHex = selfData.avatarData.outfitColor || selfData.shirtColor || '#4ECDC4';
+    const outfitTint = parseInt(outfitColorHex.replace('#', '0x'), 16);
+    this.playerOutfitSprite.setTint(outfitTint);
+    this.playerContainer.add(this.playerOutfitSprite);
+
+    // 2.4 髮型款式精靈 (Hair Layer) 搭配動態色彩 Tint
+    const hairKey = `hair_${selfData.avatarData.hair}_down`;
+    this.playerHairSprite = this.add.sprite(0, 0, hairKey);
+    const hairColorHex = selfData.avatarData.hairColor || '#FFE66D';
+    const hairTint = parseInt(hairColorHex.replace('#', '0x'), 16);
+    this.playerHairSprite.setTint(hairTint);
+    this.playerContainer.add(this.playerHairSprite);
+
+    // 2.5 主角頭頂可愛金色姓名標籤 (Gold Name Tag)
     const nameBg = this.add.graphics();
     nameBg.fillStyle(0xFFF9E6, 0.95);
     nameBg.lineStyle(2, 0xF59E0B, 1);
@@ -493,15 +572,32 @@ export class MainScene extends Phaser.Scene {
     nameBg.strokeRoundedRect(-44, -38, 88, 18, 9);
     this.playerContainer.add(nameBg);
 
-    const nameText = this.add.text(0, -29, `★ ${selfData.name}`, {
+    this.playerNameText = this.add.text(0, -29, `★ ${selfData.name}`, {
       fontFamily: 'Nunito, Quicksand, sans-serif',
       fontSize: '11px',
       color: '#92400E',
       fontStyle: 'bold'
     }).setOrigin(0.5);
-    this.playerContainer.add(nameText);
+    this.playerContainer.add(this.playerNameText);
 
-    // 手持食物懸浮圖標
+    // 2.6 自訂頭頂跟隨狀態泡泡徽章 (Customizable Overhead Tailing Bubble)
+    this.playerBubbleContainer = this.add.container(0, -50);
+    this.playerBubbleSprite = this.add.sprite(0, 0, `bubble_badge_${selfData.customBubble}`);
+    this.playerBubbleSprite.setScale(0.85);
+    this.playerBubbleContainer.add(this.playerBubbleSprite);
+    this.playerContainer.add(this.playerBubbleContainer);
+
+    // 泡泡懸浮微動緩動動畫 (Sine Floating Tween)
+    this.tweens.add({
+      targets: this.playerBubbleContainer,
+      y: -54,
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // 2.7 手持食物懸浮圖標
     this.playerFoodIcon = this.add.sprite(14, 8, 'item_coke');
     this.playerFoodIcon.setScale(0.85);
     this.playerFoodIcon.setVisible(false);
@@ -513,6 +609,16 @@ export class MainScene extends Phaser.Scene {
     this.cameras.main.setZoom(1.25); // 舒適動森特寫縮放
 
     this.playerData = selfData;
+
+    // 若本地有持久化裝扮，主動廣播最新裝扮至伺服器
+    if (this.savedAvatarConfig && this.network && this.network.sendUpdateAvatar) {
+      this.network.sendUpdateAvatar({
+        name: selfData.name,
+        species: selfData.species,
+        avatarData: selfData.avatarData,
+        customBubble: selfData.customBubble
+      });
+    }
 
     // 更新 HUD 玩家姓名
     const hudName = document.getElementById('hud-player-name');
@@ -606,10 +712,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   /**
-   * 更新主角精靈幀與踏步動畫
+   * 更新主角精靈幀、踏步動畫、衣服與髮型多層複合圖層
    */
   updatePlayerVisuals(dir, isSit = false, isWalk = false) {
-    if (!this.playerSprite || !this.playerData) return;
+    if (!this.playerBaseSprite || !this.playerData) return;
 
     let frame = 0;
     if (isSit) {
@@ -619,10 +725,111 @@ export class MainScene extends Phaser.Scene {
       frame = tick === 0 ? 1 : 2;
     }
 
-    const key = `avatar_${this.playerData.species}_${dir}_${frame}`;
-    if (this.textures.exists(key)) {
-      this.playerSprite.setTexture(key);
+    const species = (this.playerData.avatarData && this.playerData.avatarData.species) || this.playerData.species || 'CAT';
+    const hair = (this.playerData.avatarData && this.playerData.avatarData.hair) || 'spiky';
+    const hairColor = (this.playerData.avatarData && this.playerData.avatarData.hairColor) || '#FFE66D';
+    const outfit = (this.playerData.avatarData && this.playerData.avatarData.outfit) || 'hoodie';
+    const outfitColor = (this.playerData.avatarData && this.playerData.avatarData.outfitColor) || this.playerData.shirtColor || '#4ECDC4';
+
+    // 1. 底層身體與面部 (Base Body Frame)
+    const baseKey = `avatar_base_${species}_${dir}_${frame}`;
+    if (this.textures.exists(baseKey)) {
+      this.playerBaseSprite.setTexture(baseKey);
     }
+
+    // 2. 衣服款式 (Outfit Layer) 搭配色彩 Tint 濾鏡著色
+    const outfitKey = `outfit_${outfit}_${dir}_${frame}`;
+    if (this.playerOutfitSprite && this.textures.exists(outfitKey)) {
+      this.playerOutfitSprite.setTexture(outfitKey);
+      const hex = parseInt(outfitColor.replace('#', '0x'), 16);
+      this.playerOutfitSprite.setTint(hex);
+    }
+
+    // 3. 髮型款式 (Hair Layer) 搭配色彩 Tint 濾鏡著色
+    const hairKey = `hair_${hair}_${dir}`;
+    if (this.playerHairSprite && this.textures.exists(hairKey)) {
+      this.playerHairSprite.setTexture(hairKey);
+      const hex = parseInt(hairColor.replace('#', '0x'), 16);
+      this.playerHairSprite.setTint(hex);
+    }
+
+    // 4. 頭頂跟隨自訂狀態徽章/泡泡 (Overhead Tailing Bubble Badge)
+    if (this.playerBubbleSprite && this.playerData.customBubble) {
+      const bubbleKey = `bubble_badge_${this.playerData.customBubble}`;
+      if (this.textures.exists(bubbleKey)) {
+        this.playerBubbleSprite.setTexture(bubbleKey);
+      }
+    }
+  }
+
+  /**
+   * 複合角色外觀造型與頭頂泡泡更新應用 (Apply Custom Composite Avatar)
+   */
+  applyPlayerCustomAvatar(settings) {
+    if (!this.playerData) return;
+
+    if (settings.name) {
+      this.playerData.name = settings.name;
+      if (this.playerNameText) {
+        this.playerNameText.setText(`★ ${settings.name}`);
+      }
+      const hudName = document.getElementById('hud-player-name');
+      if (hudName) hudName.textContent = settings.name;
+    }
+
+    if (settings.species) {
+      this.playerData.species = settings.species;
+    }
+
+    if (settings.avatarData) {
+      this.playerData.avatarData = settings.avatarData;
+      if (settings.avatarData.species) {
+        this.playerData.species = settings.avatarData.species;
+      }
+      if (settings.avatarData.outfitColor) {
+        this.playerData.shirtColor = settings.avatarData.outfitColor;
+      }
+    }
+
+    if (settings.customBubble) {
+      this.playerData.customBubble = settings.customBubble;
+      if (this.playerBubbleSprite) {
+        const bubbleKey = `bubble_badge_${settings.customBubble}`;
+        if (this.textures.exists(bubbleKey)) {
+          this.playerBubbleSprite.setTexture(bubbleKey);
+        }
+      }
+    }
+
+    // 立即刷新視覺渲染
+    const lastDir = (this.currentAnimKey || 'idle_down').split('_')[1] || 'down';
+    this.updatePlayerVisuals(lastDir, this.mutexMachine.isSitting, false);
+
+    // 本地快取持久化存檔 (Persistent Local Storage)
+    try {
+      const payloadToSave = {
+        name: this.playerData.name,
+        species: this.playerData.species,
+        avatarData: this.playerData.avatarData,
+        customBubble: this.playerData.customBubble
+      };
+      localStorage.setItem('chubby_office_avatar', JSON.stringify(payloadToSave));
+      this.savedAvatarConfig = payloadToSave;
+    } catch (err) {
+      console.warn('[Avatar] 寫入 localStorage 失敗:', err);
+    }
+
+    // 發送外觀造型更新至伺服器
+    if (this.network && this.network.sendUpdateAvatar) {
+      this.network.sendUpdateAvatar({
+        name: this.playerData.name,
+        species: this.playerData.species,
+        avatarData: this.playerData.avatarData,
+        customBubble: this.playerData.customBubble
+      });
+    }
+
+    this.showSystemNotice('🎨 角色裝扮與頭頂氣泡已成功更新！');
   }
 
   // ==========================================================================
@@ -633,6 +840,18 @@ export class MainScene extends Phaser.Scene {
     if (!this.player) return;
     const px = this.player.x;
     const py = this.player.y;
+
+    // A. YouTube 控制棒感測判定 (嚴格 120-150px 範圍內顯示，超出強制隱藏)
+    const mediaPos = GAME_CONFIG.ZONES.MEDIA_SCREEN;
+    const distToScreen = Phaser.Math.Distance.Between(px, py, mediaPos.x, mediaPos.y);
+    const controlStick = document.getElementById('youtube-control-stick');
+    if (controlStick) {
+      if (distToScreen <= mediaPos.controlStickRadius) {
+        controlStick.classList.remove('hidden');
+      } else {
+        controlStick.classList.add('hidden');
+      }
+    }
 
     let closest = null;
     let minDistance = Infinity;

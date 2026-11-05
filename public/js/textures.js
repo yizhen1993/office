@@ -24,6 +24,7 @@ export class TextureGenerator {
     this.createSanitaryTextures(tm);
     this.createRouletteTextures(tm);
     this.createCharacterAvatars(tm);
+    this.createCompositeAvatarParts(tm);
     this.createNpcDjTextures(tm);
   }
 
@@ -313,6 +314,28 @@ export class TextureGenerator {
     ctx.fillText('📺 MULTIMEDIA STAGE (APPROACH TO PLAY)', 120, 100);
 
     tm.addCanvas('prop_projector_screen', canvas);
+
+    // 圓潤單人沙發 (Chubby Single Sofa Seat for YouTube Screen: 44 x 44 px)
+    {
+      const sofa = this.createCanvas(44, 44);
+      // 陰影
+      sofa.ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
+      this.roundRect(sofa.ctx, 4, 6, 36, 34, 10, true);
+
+      // 沙發主體
+      sofa.ctx.fillStyle = '#6B9080';
+      this.roundRect(sofa.ctx, 2, 2, 40, 36, 10, true);
+
+      // 厚實圓潤坐墊 (Plush Cushion)
+      sofa.ctx.fillStyle = '#A4C3B2';
+      this.roundRect(sofa.ctx, 6, 8, 32, 26, 8, true);
+
+      // 高光靠背
+      sofa.ctx.fillStyle = '#CCE3DE';
+      this.roundRect(sofa.ctx, 8, 4, 28, 8, 4, true);
+
+      tm.addCanvas('sofa_single_seat', sofa.canvas);
+    }
   }
 
   // ==========================================================================
@@ -821,7 +844,278 @@ export class TextureGenerator {
   }
 
   // ==========================================================================
-  // 9. NPC DJ (K.K. Slider 音樂狗與 DJ 台)
+  // 9. 複合角色自訂裝扮範本 (Composite Avatar Template Generator)
+  //  - 底層身體 (Base Body Frame)
+  //  - 髮型範本 (Grayscale Hair Texture Layers)
+  //  - 衣服範本 (Grayscale Outfit Texture Layers)
+  //  - 頭頂跟隨自訂狀態徽章/泡泡 (Overhead Tailing Bubble Badges)
+  // ==========================================================================
+  static createCompositeAvatarParts(tm) {
+    const SPECIES = ['CAT', 'BEAR', 'BUNNY', 'PUPPY'];
+    const DIRECTIONS = ['down', 'up', 'left', 'right'];
+
+    // A. 底層身體 (Base Body Frame: 48 x 56 px)
+    SPECIES.forEach(species => {
+      DIRECTIONS.forEach(dir => {
+        for (let frame = 0; frame <= 3; frame++) {
+          const key = `avatar_base_${species}_${dir}_${frame}`;
+          const { canvas, ctx } = this.createCanvas(48, 56);
+
+          const skinColor =
+            species === 'CAT' ? '#FED7AA' :
+            species === 'BEAR' ? '#DDA15E' :
+            species === 'BUNNY' ? '#FDE2E4' : '#F5CD79';
+
+          const isSit = frame === 3;
+          const walkOffset = (frame === 1) ? -2 : (frame === 2) ? 2 : 0;
+          const bob = (frame === 1 || frame === 2) ? -2 : 0;
+
+          // 腳步
+          ctx.fillStyle = skinColor;
+          if (!isSit) {
+            ctx.beginPath();
+            ctx.ellipse(18 + walkOffset, 50, 4, 3, 0, 0, Math.PI * 2);
+            ctx.ellipse(30 - walkOffset, 50, 4, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 軀幹基底 (純白襯底供 outfit 疊加覆蓋)
+          ctx.fillStyle = '#FFFFFF';
+          const torsoY = isSit ? 34 : (32 + bob);
+          this.roundRect(ctx, 14, torsoY, 20, isSit ? 16 : 18, 8, true);
+
+          // 圓潤大頭
+          ctx.fillStyle = skinColor;
+          const headY = isSit ? 20 : (18 + bob);
+          ctx.beginPath();
+          ctx.ellipse(24, headY, 15, 13, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 耳朵造型
+          if (species === 'CAT') {
+            ctx.fillStyle = skinColor;
+            ctx.beginPath();
+            ctx.moveTo(13, headY - 8); ctx.lineTo(10, headY - 18); ctx.lineTo(19, headY - 11);
+            ctx.moveTo(35, headY - 8); ctx.lineTo(38, headY - 18); ctx.lineTo(29, headY - 11);
+            ctx.fill();
+            ctx.fillStyle = '#FFAAA6';
+            ctx.beginPath();
+            ctx.moveTo(13, headY - 9); ctx.lineTo(11, headY - 16); ctx.lineTo(17, headY - 11);
+            ctx.moveTo(35, headY - 9); ctx.lineTo(37, headY - 16); ctx.lineTo(31, headY - 11);
+            ctx.fill();
+          } else if (species === 'BEAR') {
+            ctx.fillStyle = skinColor;
+            ctx.beginPath();
+            ctx.arc(12, headY - 10, 5, 0, Math.PI * 2);
+            ctx.arc(36, headY - 10, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#BC6C25';
+            ctx.beginPath();
+            ctx.arc(12, headY - 10, 2.5, 0, Math.PI * 2);
+            ctx.arc(36, headY - 10, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (species === 'BUNNY') {
+            ctx.fillStyle = skinColor;
+            this.roundRect(ctx, 14, headY - 24, 6, 16, 3, true);
+            this.roundRect(ctx, 28, headY - 24, 6, 16, 3, true);
+            ctx.fillStyle = '#FFB5A7';
+            this.roundRect(ctx, 15.5, headY - 22, 3, 12, 1.5, true);
+            this.roundRect(ctx, 29.5, headY - 22, 3, 12, 1.5, true);
+          } else if (species === 'PUPPY') {
+            ctx.fillStyle = '#E59866';
+            this.roundRect(ctx, 7, headY - 6, 6, 14, 3, true);
+            this.roundRect(ctx, 35, headY - 6, 6, 14, 3, true);
+          }
+
+          // 面部五官
+          if (dir === 'down') {
+            ctx.fillStyle = '#2D3748';
+            ctx.beginPath();
+            ctx.arc(19, headY, 2.5, 0, Math.PI * 2);
+            ctx.arc(29, headY, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath();
+            ctx.arc(18.2, headY - 0.8, 1, 0, Math.PI * 2);
+            ctx.arc(28.2, headY - 0.8, 1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255, 107, 107, 0.55)';
+            ctx.beginPath();
+            ctx.arc(16, headY + 3.5, 2.5, 0, Math.PI * 2);
+            ctx.arc(32, headY + 3.5, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#2D3748';
+            ctx.beginPath();
+            ctx.arc(24, headY + 2, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (dir === 'left') {
+            ctx.fillStyle = '#2D3748';
+            ctx.beginPath();
+            ctx.arc(16, headY, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath();
+            ctx.arc(15.2, headY - 0.8, 1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255, 107, 107, 0.55)';
+            ctx.beginPath();
+            ctx.arc(14, headY + 3.5, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (dir === 'right') {
+            ctx.fillStyle = '#2D3748';
+            ctx.beginPath();
+            ctx.arc(32, headY, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath();
+            ctx.arc(31.2, headY - 0.8, 1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255, 107, 107, 0.55)';
+            ctx.beginPath();
+            ctx.arc(34, headY + 3.5, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          tm.addCanvas(key, canvas);
+        }
+      });
+    });
+
+    // B. 髮型款式 (Grayscale Hair Texture Layers - 灰階純白範本供 setTint 著色)
+    const HAIR_STYLES = ['spiky', 'bob', 'ponytail', 'cap'];
+    HAIR_STYLES.forEach(style => {
+      DIRECTIONS.forEach(dir => {
+        const key = `hair_${style}_${dir}`;
+        const { canvas, ctx } = this.createCanvas(48, 56);
+        ctx.fillStyle = '#FFFFFF';
+
+        if (style === 'spiky') {
+          // 俐落刺蝟頭
+          ctx.beginPath();
+          ctx.moveTo(14, 14); ctx.lineTo(16, 4); ctx.lineTo(21, 10);
+          ctx.lineTo(24, 2); ctx.lineTo(27, 10); ctx.lineTo(32, 4);
+          ctx.lineTo(34, 14);
+          ctx.closePath();
+          ctx.fill();
+        } else if (style === 'bob') {
+          // 可愛波波頭
+          ctx.beginPath();
+          ctx.arc(24, 16, 16, Math.PI, 0, false);
+          ctx.lineTo(39, 24);
+          ctx.quadraticCurveTo(36, 28, 33, 20);
+          ctx.lineTo(15, 20);
+          ctx.quadraticCurveTo(12, 28, 9, 24);
+          ctx.closePath();
+          ctx.fill();
+        } else if (style === 'ponytail') {
+          // 瀏海 + 高馬尾
+          ctx.beginPath();
+          ctx.arc(24, 15, 15, Math.PI, 0, false);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(dir === 'left' ? 32 : (dir === 'right' ? 16 : 24), 6, 6, 9, 0.2, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (style === 'cap') {
+          // 棒球休閒帽 (Visor Cap)
+          ctx.beginPath();
+          ctx.arc(24, 15, 14, Math.PI, 0, false);
+          ctx.fill();
+          ctx.fillStyle = '#E2E8F0';
+          if (dir === 'down') {
+            this.roundRect(ctx, 15, 13, 18, 5, 2, true);
+          } else if (dir === 'left') {
+            this.roundRect(ctx, 10, 13, 16, 5, 2, true);
+          } else if (dir === 'right') {
+            this.roundRect(ctx, 22, 13, 16, 5, 2, true);
+          }
+        }
+
+        tm.addCanvas(key, canvas);
+      });
+    });
+
+    // C. 衣服款式 (Grayscale Outfit Texture Layers - 灰階純白範本供 setTint 著色)
+    const OUTFIT_STYLES = ['hoodie', 'suit', 'apron', 'sweater'];
+    OUTFIT_STYLES.forEach(style => {
+      DIRECTIONS.forEach(dir => {
+        for (let frame = 0; frame <= 3; frame++) {
+          const key = `outfit_${style}_${dir}_${frame}`;
+          const { canvas, ctx } = this.createCanvas(48, 56);
+          const isSit = frame === 3;
+          const bob = (frame === 1 || frame === 2) ? -2 : 0;
+          const torsoY = isSit ? 34 : (32 + bob);
+
+          ctx.fillStyle = '#FFFFFF';
+          this.roundRect(ctx, 14, torsoY, 20, isSit ? 16 : 18, 8, true);
+
+          if (style === 'hoodie') {
+            // 連帽抽繩與袋鼠口袋
+            ctx.fillStyle = '#E2E8F0';
+            this.roundRect(ctx, 18, torsoY + 8, 12, 6, 2, true);
+            ctx.fillStyle = '#CBD5E1';
+            ctx.fillRect(20, torsoY + 2, 2, 5);
+            ctx.fillRect(26, torsoY + 2, 2, 5);
+          } else if (style === 'suit') {
+            // 西裝領與小領帶
+            ctx.fillStyle = '#CBD5E1';
+            ctx.beginPath();
+            ctx.moveTo(20, torsoY); ctx.lineTo(24, torsoY + 8); ctx.lineTo(28, torsoY);
+            ctx.fill();
+            ctx.fillStyle = '#94A3B8';
+            ctx.fillRect(23, torsoY + 2, 2, 8);
+          } else if (style === 'apron') {
+            // 圍裙雙帶與大口袋
+            ctx.fillStyle = '#E2E8F0';
+            ctx.fillRect(16, torsoY + 1, 3, 12);
+            ctx.fillRect(29, torsoY + 1, 3, 12);
+            ctx.fillStyle = '#CBD5E1';
+            this.roundRect(ctx, 17, torsoY + 9, 14, 6, 2, true);
+          } else if (style === 'sweater') {
+            // 針織毛衣橫條紋
+            ctx.fillStyle = '#E2E8F0';
+            ctx.fillRect(15, torsoY + 4, 18, 2);
+            ctx.fillRect(15, torsoY + 9, 18, 2);
+            ctx.fillRect(15, torsoY + 14, 18, 2);
+          }
+
+          tm.addCanvas(key, canvas);
+        }
+      });
+    });
+
+    // D. 頭頂跟隨自訂狀態徽章/泡泡 (Customizable Overhead Tailing Bubble Badges)
+    const BUBBLES = [
+      { id: 'code', icon: '💻' },
+      { id: 'coffee', icon: '☕' },
+      { id: 'rocket', icon: '🚀' },
+      { id: 'sleep', icon: '💤' },
+      { id: 'star', icon: '🌟' },
+      { id: 'leaf', icon: '🍃' },
+      { id: 'fire', icon: '🔥' }
+    ];
+
+    BUBBLES.forEach(b => {
+      const { canvas, ctx } = this.createCanvas(32, 32);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(16, 16, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#78C0A8';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.font = '16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(b.icon, 16, 17);
+
+      tm.addCanvas(`bubble_badge_${b.id}`, canvas);
+    });
+  }
+
+  // ==========================================================================
+  // 10. NPC DJ (K.K. Slider 音樂狗與 DJ 台)
   // ==========================================================================
   static createNpcDjTextures(tm) {
     // DJ 混音控制台與黑膠唱盤 (DJ Turntable Booth: 96 x 48 px)

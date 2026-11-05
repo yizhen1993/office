@@ -123,7 +123,34 @@ export class NetworkManager {
         remote.isSprinting = data.isSprinting;
         remote.isSitting = data.isSitting;
         remote.heldItem = data.heldItem;
+        if (data.avatarData) remote.avatarData = data.avatarData;
+        if (data.customBubble !== undefined) remote.customBubble = data.customBubble;
 
+        this.syncRemoteSpriteVisuals(remote);
+      }
+    });
+
+    // ========================================================================
+    // 3.5 玩家外觀造型自訂更新 (player_avatar_updated)
+    // ========================================================================
+    socket.on('player_avatar_updated', (data) => {
+      console.log(`[Network] 🎨 收到玩家裝扮同步更新: ${data.id}`, data);
+      if (data.id === this.selfId) return;
+
+      const remote = this.remotePlayers.get(data.id);
+      if (remote) {
+        if (data.name) {
+          remote.name = data.name;
+          if (remote.nameText) remote.nameText.setText(data.name);
+        }
+        if (data.avatarData) {
+          remote.avatarData = data.avatarData;
+          remote.species = data.avatarData.species || remote.species;
+          remote.shirtColor = data.avatarData.outfitColor || remote.shirtColor;
+        }
+        if (data.customBubble !== undefined) {
+          remote.customBubble = data.customBubble;
+        }
         this.syncRemoteSpriteVisuals(remote);
       }
     });
@@ -215,32 +242,53 @@ export class NetworkManager {
   }
 
   // ==========================================================================
-  // 遠端實體精靈生成工廠 (Remote Player Factory)
+  // 遠端實體精靈生成工廠 (Remote Player Composite Factory)
   // ==========================================================================
   spawnRemotePlayerSprite(pData) {
     if (this.remotePlayers.has(pData.id)) return;
 
-    const species = pData.species || 'CAT';
-    const shirtColor = pData.shirtColor || '#4ECDC4';
+    const species = (pData.avatarData && pData.avatarData.species) || pData.species || 'CAT';
+    const avatarData = pData.avatarData || {
+      species: species,
+      hair: 'spiky',
+      hairColor: '#FFE66D',
+      outfit: 'hoodie',
+      outfitColor: pData.shirtColor || '#4ECDC4'
+    };
+    const customBubble = pData.customBubble || 'code';
 
     // 建立複合容器 (Composite Container)
     const container = this.scene.add.container(pData.x, pData.y);
     container.setDepth(pData.y);
 
-    // 底部黏土橢圓陰影
+    // 1. 底部黏土橢圓陰影
     const shadow = this.scene.add.ellipse(0, 22, 28, 10, 0x000000, 0.2);
     container.add(shadow);
 
-    // 動森角色精靈
-    const initialKey = `avatar_${species}_down_0`;
-    const sprite = this.scene.add.sprite(0, 0, initialKey);
-    if (shirtColor) {
-      const hex = parseInt(shirtColor.replace('#', '0x'), 16);
-      sprite.setTint(hex);
-    }
-    container.add(sprite);
+    // 2. 底層身體外觀精靈 (Base Body Frame)
+    const initialBaseKey = `avatar_base_${species}_down_0`;
+    const baseSprite = this.scene.add.sprite(0, 0, initialBaseKey);
+    container.add(baseSprite);
 
-    // 遠端同仁精緻姓名標籤 (Temple Frosted Name Tag)
+    // 3. 衣服款式精靈 (Outfit Layer) 搭配色彩 Tint 濾鏡著色
+    const initialOutfitKey = `outfit_${avatarData.outfit}_down_0`;
+    const outfitSprite = this.scene.add.sprite(0, 0, initialOutfitKey);
+    if (avatarData.outfitColor) {
+      const hex = parseInt(avatarData.outfitColor.replace('#', '0x'), 16);
+      outfitSprite.setTint(hex);
+    }
+    container.add(outfitSprite);
+
+    // 4. 髮型款式精靈 (Hair Layer) 搭配色彩 Tint 濾鏡著色
+    const initialHairKey = `hair_${avatarData.hair}_down`;
+    const hairSprite = this.scene.add.sprite(0, 0, initialHairKey);
+    if (avatarData.hairColor) {
+      const hex = parseInt(avatarData.hairColor.replace('#', '0x'), 16);
+      hairSprite.setTint(hex);
+    }
+    container.add(hairSprite);
+
+    // 5. 遠端同仁精緻姓名標籤 (Temple Frosted Name Tag)
     const nameBg = this.scene.add.graphics();
     nameBg.fillStyle(0xFFFFFF, 0.9);
     nameBg.lineStyle(1.5, 0x78C0A8, 1);
@@ -256,7 +304,24 @@ export class NetworkManager {
     }).setOrigin(0.5);
     container.add(nameText);
 
-    // 手持點心懸浮圖標
+    // 6. 自訂頭頂跟隨狀態泡泡 (Overhead Tailing Bubble Badge)
+    const bubbleContainer = this.scene.add.container(0, -50);
+    const bubbleSprite = this.scene.add.sprite(0, 0, `bubble_badge_${customBubble}`);
+    bubbleSprite.setScale(0.85);
+    bubbleContainer.add(bubbleSprite);
+    container.add(bubbleContainer);
+
+    // 泡泡懸浮微動緩動動畫
+    this.scene.tweens.add({
+      targets: bubbleContainer,
+      y: -54,
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // 7. 手持點心懸浮圖標
     const foodIcon = this.scene.add.sprite(14, 8, 'item_coke');
     foodIcon.setScale(0.85);
     const hasItem = pData.heldItem && pData.heldItem !== 'none';
@@ -270,9 +335,16 @@ export class NetworkManager {
       id: pData.id,
       name: pData.name,
       species,
-      shirtColor,
+      shirtColor: avatarData.outfitColor,
+      avatarData,
+      customBubble,
       container,
-      sprite,
+      baseSprite,
+      outfitSprite,
+      hairSprite,
+      bubbleContainer,
+      bubbleSprite,
+      nameText,
       foodIcon,
       targetX: pData.x,
       targetY: pData.y,
@@ -287,7 +359,7 @@ export class NetworkManager {
   }
 
   /**
-   * 同步更新遠端精靈外觀、踏步幀與手持物品
+   * 同步更新遠端精靈外觀、踏步幀、衣服/髮型層次與手持物品
    */
   syncRemoteSpriteVisuals(remote) {
     let dir = 'down';
@@ -304,16 +376,51 @@ export class NetworkManager {
       frame = tick === 0 ? 1 : 2;
     }
 
-    const key = `avatar_${remote.species}_${dir}_${frame}`;
-    if (this.scene.textures.exists(key)) {
-      remote.sprite.setTexture(key);
+    const species = (remote.avatarData && remote.avatarData.species) || remote.species || 'CAT';
+    const hair = (remote.avatarData && remote.avatarData.hair) || 'spiky';
+    const hairColor = (remote.avatarData && remote.avatarData.hairColor) || '#FFE66D';
+    const outfit = (remote.avatarData && remote.avatarData.outfit) || 'hoodie';
+    const outfitColor = (remote.avatarData && remote.avatarData.outfitColor) || remote.shirtColor || '#4ECDC4';
+    const customBubble = remote.customBubble || 'code';
+
+    // 1. 底層身體與面部
+    const baseKey = `avatar_base_${species}_${dir}_${frame}`;
+    if (this.scene.textures.exists(baseKey) && remote.baseSprite) {
+      remote.baseSprite.setTexture(baseKey);
     }
 
-    if (remote.heldItem && remote.heldItem !== 'none') {
-      remote.foodIcon.setTexture(`item_${remote.heldItem.toLowerCase()}`);
-      remote.foodIcon.setVisible(true);
-    } else {
-      remote.foodIcon.setVisible(false);
+    // 2. 衣服款式與動態 Tint
+    const outfitKey = `outfit_${outfit}_${dir}_${frame}`;
+    if (this.scene.textures.exists(outfitKey) && remote.outfitSprite) {
+      remote.outfitSprite.setTexture(outfitKey);
+      const hex = parseInt(outfitColor.replace('#', '0x'), 16);
+      remote.outfitSprite.setTint(hex);
+    }
+
+    // 3. 髮型款式與動態 Tint
+    const hairKey = `hair_${hair}_${dir}`;
+    if (this.scene.textures.exists(hairKey) && remote.hairSprite) {
+      remote.hairSprite.setTexture(hairKey);
+      const hex = parseInt(hairColor.replace('#', '0x'), 16);
+      remote.hairSprite.setTint(hex);
+    }
+
+    // 4. 頭頂狀態徽章
+    if (remote.bubbleSprite) {
+      const bubbleKey = `bubble_badge_${customBubble}`;
+      if (this.scene.textures.exists(bubbleKey)) {
+        remote.bubbleSprite.setTexture(bubbleKey);
+      }
+    }
+
+    // 5. 手持點心圖標
+    if (remote.foodIcon) {
+      if (remote.heldItem && remote.heldItem !== 'none') {
+        remote.foodIcon.setTexture(`item_${remote.heldItem.toLowerCase()}`);
+        remote.foodIcon.setVisible(true);
+      } else {
+        remote.foodIcon.setVisible(false);
+      }
     }
   }
 
@@ -369,6 +476,9 @@ export class NetworkManager {
                            heldItem !== this.lastEmittedState.heldItem;
 
       if (moved || stateChanged) {
+        const avatarData = this.scene.playerData ? this.scene.playerData.avatarData : undefined;
+        const customBubble = this.scene.playerData ? this.scene.playerData.customBubble : undefined;
+
         this.socket.emit('player_move', {
           id: this.selfId,
           x: Math.round(p.x * 10) / 10,
@@ -376,7 +486,9 @@ export class NetworkManager {
           anim: currentAnim,
           heldItem: heldItem,
           isSprinting: isSprinting,
-          isSitting: isSitting
+          isSitting: isSitting,
+          avatarData: avatarData,
+          customBubble: customBubble
         });
 
         this.lastEmittedState = {
@@ -395,6 +507,12 @@ export class NetworkManager {
   // ==========================================================================
   // 業務事件發射句柄 (Public Emitters)
   // ==========================================================================
+  sendUpdateAvatar(avatarConfig) {
+    if (this.socket) {
+      this.socket.emit('player_update_avatar', avatarConfig);
+    }
+  }
+
   sendChatMessage(message) {
     if (this.socket) {
       this.socket.emit('chat_message', { message });

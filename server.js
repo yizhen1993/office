@@ -142,6 +142,14 @@ io.on('connection', (socket) => {
     name: avatar.name,
     species: avatar.species,
     shirtColor: avatar.shirtColor,
+    avatarData: {
+      species: avatar.species,
+      hair: 'spiky',
+      hairColor: '#FFE66D',
+      outfit: 'hoodie',
+      outfitColor: avatar.shirtColor
+    },
+    customBubble: 'code',
     x: 400,
     y: 300,
     anim: 'idle',
@@ -206,6 +214,8 @@ io.on('connection', (socket) => {
     player.isSprinting = Boolean(payload.isSprinting);
     player.isSitting = Boolean(payload.isSitting);
     player.chairId = payload.chairId || null;
+    if (payload.avatarData) player.avatarData = payload.avatarData;
+    if (payload.customBubble !== undefined) player.customBubble = payload.customBubble;
 
     // 低延遲廣播 player_moved 封包至同房間其他成員
     socket.to('office').emit('player_moved', {
@@ -214,10 +224,33 @@ io.on('connection', (socket) => {
       y: player.y,
       anim: player.anim,
       heldItem: player.heldItem,
+      avatarData: player.avatarData,
+      customBubble: player.customBubble,
       isSprinting: player.isSprinting,
       isSitting: player.isSitting,
       chairId: player.chairId,
       timestamp: Date.now()
+    });
+  });
+
+  // ==========================================================================
+  // 事件 B2: 玩家外觀造型自訂更新 (player_update_avatar)
+  // ==========================================================================
+  socket.on('player_update_avatar', (payload) => {
+    const player = rooms.office.players[socket.id];
+    if (!player) return;
+
+    if (payload.avatarData) player.avatarData = payload.avatarData;
+    if (payload.customBubble !== undefined) player.customBubble = payload.customBubble;
+    if (payload.name) player.name = sanitizeString(payload.name);
+
+    console.log(`[Avatar] 🎨 玩家 ${player.name} 更新了裝扮設定:`, player.avatarData, player.customBubble);
+
+    io.to('office').emit('player_avatar_updated', {
+      id: socket.id,
+      name: player.name,
+      avatarData: player.avatarData,
+      customBubble: player.customBubble
     });
   });
 

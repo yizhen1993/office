@@ -38,11 +38,15 @@ export class UIManager {
     this.btnEat = document.getElementById('btn-eat');
     this.btnAction = document.getElementById('btn-action');
     this.btnClub = document.getElementById('btn-club');
+    this.btnStyle = document.getElementById('btn-style');
     this.chatInput = document.getElementById('chat-input');
     this.chatForm = document.getElementById('chat-form');
     this.fridgeMenu = document.getElementById('fridge-menu-modal');
     this.mediaModal = document.getElementById('media-modal');
     this.youtubeContainer = document.getElementById('youtube-player-layer');
+    this.avatarModal = document.getElementById('avatar-picker-modal');
+    this.youtubeControlStick = document.getElementById('youtube-control-stick');
+    this.btnOpenYoutube = document.getElementById('btn-open-youtube-modal');
 
     // 當前接近的可互動設施
     this.nearbyInteractive = null; // { type: 'FRIDGE' | 'TV' | 'ROULETTE' | 'SCREEN' | 'CHAIR', target: any }
@@ -58,6 +62,8 @@ export class UIManager {
     this.initChatSystem();
     this.initFridgeModal();
     this.initMediaControls();
+    this.initAvatarPickerModal();
+    this.initYoutubeControlStick();
   }
 
   // ==========================================================================
@@ -332,6 +338,224 @@ export class UIManager {
   hideMediaModal() {
     if (this.mediaModal) {
       this.mediaModal.classList.add('hidden');
+    }
+  }
+
+  // ==========================================================================
+  // 5.5 複合角色外觀造型面板 (Composite Avatar Customization Modal)
+  // ==========================================================================
+  initAvatarPickerModal() {
+    if (!this.avatarModal) return;
+
+    const closeBtn = document.getElementById('avatar-picker-close-btn');
+    const cancelBtn = document.getElementById('btn-cancel-avatar');
+    const form = document.getElementById('avatar-custom-form');
+    const nameInput = document.getElementById('picker-name-input');
+    const hairHex = document.getElementById('picker-hair-hex');
+    const outfitHex = document.getElementById('picker-outfit-hex');
+
+    // 點擊 HUD 的 STYLE 按鈕開啟裝扮面板
+    if (this.btnStyle) {
+      this.btnStyle.onclick = (e) => {
+        e.preventDefault();
+        this.openAvatarPickerModal();
+      };
+    }
+
+    if (closeBtn) {
+      closeBtn.onclick = () => this.hideAvatarPickerModal();
+    }
+    if (cancelBtn) {
+      cancelBtn.onclick = () => this.hideAvatarPickerModal();
+    }
+
+    // 當前暫存選擇狀態 (Current Working State)
+    this.modalAvatarState = {
+      name: 'Colleague',
+      species: 'CAT',
+      hair: 'spiky',
+      hairColor: '#FFE66D',
+      outfit: 'hoodie',
+      outfitColor: '#4ECDC4',
+      customBubble: 'code'
+    };
+
+    // 1. 動物耳朵品種按鈕組 (Species Selection)
+    const speciesBtns = document.querySelectorAll('#picker-species-group .species-btn');
+    speciesBtns.forEach(btn => {
+      btn.onclick = () => {
+        const species = btn.getAttribute('data-species');
+        this.modalAvatarState.species = species;
+        speciesBtns.forEach(b => {
+          b.classList.remove('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+          b.classList.add('border-slate-200', 'bg-white');
+        });
+        btn.classList.remove('border-slate-200', 'bg-white');
+        btn.classList.add('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+      };
+    });
+
+    // 2. 髮型款式按鈕組 (Hair Style Selection)
+    const hairBtns = document.querySelectorAll('#picker-hair-group .hair-btn');
+    hairBtns.forEach(btn => {
+      btn.onclick = () => {
+        const hair = btn.getAttribute('data-hair');
+        this.modalAvatarState.hair = hair;
+        hairBtns.forEach(b => {
+          b.classList.remove('border-amber-500', 'bg-amber-100', 'ring-2', 'ring-amber-400');
+          b.classList.add('border-slate-200', 'bg-white');
+        });
+        btn.classList.remove('border-slate-200', 'bg-white');
+        btn.classList.add('border-amber-500', 'bg-amber-100', 'ring-2', 'ring-amber-400');
+      };
+    });
+
+    // 2.1 髮色調色盤色塊
+    const hairColorSwatches = document.querySelectorAll('#picker-hair-colors .color-swatch');
+    hairColorSwatches.forEach(swatch => {
+      swatch.onclick = () => {
+        const color = swatch.getAttribute('data-color');
+        this.modalAvatarState.hairColor = color;
+        if (hairHex) hairHex.value = color;
+      };
+    });
+    if (hairHex) {
+      hairHex.oninput = (e) => {
+        this.modalAvatarState.hairColor = e.target.value;
+      };
+    }
+
+    // 3. 衣服款式按鈕組 (Outfit Style Selection)
+    const outfitBtns = document.querySelectorAll('#picker-outfit-group .outfit-btn');
+    outfitBtns.forEach(btn => {
+      btn.onclick = () => {
+        const outfit = btn.getAttribute('data-outfit');
+        this.modalAvatarState.outfit = outfit;
+        outfitBtns.forEach(b => {
+          b.classList.remove('border-teal-500', 'bg-teal-100', 'ring-2', 'ring-teal-400');
+          b.classList.add('border-slate-200', 'bg-white');
+        });
+        btn.classList.remove('border-slate-200', 'bg-white');
+        btn.classList.add('border-teal-500', 'bg-teal-100', 'ring-2', 'ring-teal-400');
+      };
+    });
+
+    // 3.1 衣服調色盤色塊
+    const outfitColorSwatches = document.querySelectorAll('#picker-outfit-colors .color-swatch');
+    outfitColorSwatches.forEach(swatch => {
+      swatch.onclick = () => {
+        const color = swatch.getAttribute('data-color');
+        this.modalAvatarState.outfitColor = color;
+        if (outfitHex) outfitHex.value = color;
+      };
+    });
+    if (outfitHex) {
+      outfitHex.oninput = (e) => {
+        this.modalAvatarState.outfitColor = e.target.value;
+      };
+    }
+
+    // 4. 頭頂跟隨自訂狀態泡泡按鈕組 (Overhead Tailing Bubble Selection)
+    const bubbleBtns = document.querySelectorAll('#picker-bubble-group .bubble-btn');
+    bubbleBtns.forEach(btn => {
+      btn.onclick = () => {
+        const bubble = btn.getAttribute('data-bubble');
+        this.modalAvatarState.customBubble = bubble;
+        bubbleBtns.forEach(b => {
+          b.classList.remove('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+          b.classList.add('border-slate-200', 'bg-white');
+        });
+        btn.classList.remove('border-slate-200', 'bg-white');
+        btn.classList.add('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+      };
+    });
+
+    // 5. 表單提交保存 (Save & Sync)
+    if (form) {
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const customName = nameInput ? nameInput.value.trim() : '';
+        const finalName = customName || this.modalAvatarState.name || 'Colleague';
+
+        const finalConfig = {
+          name: finalName,
+          species: this.modalAvatarState.species,
+          avatarData: {
+            species: this.modalAvatarState.species,
+            hair: this.modalAvatarState.hair,
+            hairColor: this.modalAvatarState.hairColor,
+            outfit: this.modalAvatarState.outfit,
+            outfitColor: this.modalAvatarState.outfitColor
+          },
+          customBubble: this.modalAvatarState.customBubble
+        };
+
+        if (this.scene.applyPlayerCustomAvatar) {
+          this.scene.applyPlayerCustomAvatar(finalConfig);
+        }
+
+        this.hideAvatarPickerModal();
+      };
+    }
+  }
+
+  openAvatarPickerModal() {
+    if (!this.avatarModal) return;
+
+    // 將當前玩家設定同步至表單
+    const pData = this.scene.playerData || {};
+    const avData = pData.avatarData || {};
+
+    this.modalAvatarState = {
+      name: pData.name || 'Colleague',
+      species: avData.species || pData.species || 'CAT',
+      hair: avData.hair || 'spiky',
+      hairColor: avData.hairColor || '#FFE66D',
+      outfit: avData.outfit || 'hoodie',
+      outfitColor: avData.outfitColor || pData.shirtColor || '#4ECDC4',
+      customBubble: pData.customBubble || 'code'
+    };
+
+    const nameInput = document.getElementById('picker-name-input');
+    if (nameInput) nameInput.value = this.modalAvatarState.name;
+
+    const hairHex = document.getElementById('picker-hair-hex');
+    if (hairHex) hairHex.value = this.modalAvatarState.hairColor;
+
+    const outfitHex = document.getElementById('picker-outfit-hex');
+    if (outfitHex) outfitHex.value = this.modalAvatarState.outfitColor;
+
+    // 高亮對應選鈕
+    const speciesBtn = document.querySelector(`#picker-species-group [data-species="${this.modalAvatarState.species}"]`);
+    if (speciesBtn) speciesBtn.click();
+
+    const hairBtn = document.querySelector(`#picker-hair-group [data-hair="${this.modalAvatarState.hair}"]`);
+    if (hairBtn) hairBtn.click();
+
+    const outfitBtn = document.querySelector(`#picker-outfit-group [data-outfit="${this.modalAvatarState.outfit}"]`);
+    if (outfitBtn) outfitBtn.click();
+
+    const bubbleBtn = document.querySelector(`#picker-bubble-group [data-bubble="${this.modalAvatarState.customBubble}"]`);
+    if (bubbleBtn) bubbleBtn.click();
+
+    this.avatarModal.classList.remove('hidden');
+  }
+
+  hideAvatarPickerModal() {
+    if (this.avatarModal) {
+      this.avatarModal.classList.add('hidden');
+    }
+  }
+
+  // ==========================================================================
+  // 5.6 YouTube 控制棒事件綁定 (YouTube Control Stick Integration)
+  // ==========================================================================
+  initYoutubeControlStick() {
+    if (this.btnOpenYoutube) {
+      this.btnOpenYoutube.onclick = (e) => {
+        e.preventDefault();
+        this.showMediaModal();
+      };
     }
   }
 

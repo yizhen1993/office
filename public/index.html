@@ -48,6 +48,22 @@
   </div>
 
   <!-- ========================================================================= -->
+  <!-- 2.5 YouTube 近距離交互控制棒 (#youtube-control-stick: 僅限 120-150px 範圍內顯示) -->
+  <!-- ========================================================================= -->
+  <div id="youtube-control-stick" class="hidden absolute top-40 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+    <div class="temple-glass-card !bg-amber-100/95 px-5 py-2.5 flex items-center gap-3 border-2 border-amber-400 shadow-2xl animate-pulse">
+      <span class="text-2xl animate-bounce">🎬</span>
+      <div class="flex flex-col">
+        <span class="text-xs font-black text-amber-950">YOUTUBE SCREEN PROXIMITY STICK</span>
+        <span class="text-[10px] text-amber-800 font-bold">已進入 4-5 公尺感應範圍！點擊貼上 YouTube 影片網址</span>
+      </div>
+      <button id="btn-open-youtube-modal" class="temple-glass-card !bg-amber-500 !text-white text-xs font-black px-3 py-1.5 rounded-xl hover:scale-105 active:scale-95 transition shadow">
+        📺 貼上連結
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
   <!-- 3. 🪩 夜店派對模式全域濾鏡覆蓋層 (#club-disco-overlay) -->
   <!-- ========================================================================= -->
   <div id="club-disco-overlay"></div>
@@ -135,6 +151,12 @@
   <!-- 6. 右下象限神殿風格懸浮動作控制台 (#mobile-action-hud) -->
   <!-- ========================================================================= -->
   <div id="mobile-action-hud">
+    <!-- 按鈕 6: 🎨 自訂造型 (CUSTOMIZE AVATAR) -->
+    <button id="btn-style" class="temple-btn" title="Customize Composite Avatar & Bubble">
+      <span class="temple-btn-icon">🎨</span>
+      <span class="temple-btn-text">STYLE</span>
+    </button>
+
     <!-- 按鈕 5: 🪩 切換夜店模式 (TOGGLE CLUB) -->
     <button id="btn-club" class="temple-btn" title="Toggle Club Disco Party Mode">
       <span class="temple-btn-icon">🪩</span>
@@ -321,6 +343,142 @@
           <div><b>賽博大輪盤:</b> 靠近輪盤點擊抽獎，全體 0~36 數字權威隨機中獎同步！</div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 13. 複合角色自訂造型裝扮面板 (#avatar-picker-modal) -->
+  <!-- ========================================================================= -->
+  <div id="avatar-picker-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="temple-glass-card !bg-white/95 w-full max-w-lg p-6 relative animate-fadeIn shadow-2xl max-h-[90vh] overflow-y-auto">
+      <button id="avatar-picker-close-btn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-black text-xl">✕</button>
+      
+      <div class="flex items-center gap-3 mb-4 border-b border-emerald-200 pb-3">
+        <div class="text-3xl">🎨</div>
+        <div>
+          <h3 class="font-extrabold text-base text-emerald-950">複合角色造型裝扮所 (Composite Avatar Studio)</h3>
+          <p class="text-[11px] text-slate-500">自訂動物耳朵品種、髮型、衣服與頭頂跟隨泡泡，自動寫入本地快取持久化！</p>
+        </div>
+      </div>
+
+      <form id="avatar-custom-form" class="space-y-4 text-xs font-bold text-slate-700">
+        <!-- 暱稱輸入 -->
+        <div>
+          <label class="block text-slate-600 mb-1">🏷️ 同事暱稱 (Nickname):</label>
+          <input 
+            id="picker-name-input" 
+            type="text" 
+            maxlength="15" 
+            class="w-full px-3 py-2 text-xs font-bold rounded-xl border-2 border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          />
+        </div>
+
+        <!-- 動物耳朵品種 (Species) -->
+        <div>
+          <label class="block text-slate-600 mb-1">🐾 動物耳朵品種 (Species):</label>
+          <div class="grid grid-cols-4 gap-2" id="picker-species-group">
+            <button type="button" class="species-btn p-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 flex flex-col items-center hover:bg-emerald-100 transition" data-species="CAT">
+              <span class="text-xl">🐱</span>
+              <span class="text-[11px] mt-1 font-extrabold">貓咪 Cat</span>
+            </button>
+            <button type="button" class="species-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:bg-slate-50 transition" data-species="BEAR">
+              <span class="text-xl">🐻</span>
+              <span class="text-[11px] mt-1 font-extrabold">棕熊 Bear</span>
+            </button>
+            <button type="button" class="species-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:bg-slate-50 transition" data-species="BUNNY">
+              <span class="text-xl">🐰</span>
+              <span class="text-[11px] mt-1 font-extrabold">萌兔 Bunny</span>
+            </button>
+            <button type="button" class="species-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:bg-slate-50 transition" data-species="PUPPY">
+              <span class="text-xl">🐶</span>
+              <span class="text-[11px] mt-1 font-extrabold">垂耳 Puppy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 髮型款式與髮色 (Hair & Color) -->
+        <div class="p-3 bg-amber-50/70 rounded-2xl border border-amber-200">
+          <label class="block text-amber-900 mb-1">💇 髮型款式 (Hair Style) & 髮色染色 (Color Tint):</label>
+          <div class="grid grid-cols-4 gap-2 mb-2" id="picker-hair-group">
+            <button type="button" class="hair-btn p-1.5 rounded-lg border-2 border-amber-400 bg-white text-[11px] font-black" data-hair="spiky">刺蝟頭 Spiky</button>
+            <button type="button" class="hair-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-hair="bob">波波頭 Bob</button>
+            <button type="button" class="hair-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-hair="ponytail">馬尾 Ponytail</button>
+            <button type="button" class="hair-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-hair="cap">休閒帽 Cap</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] text-amber-800 font-extrabold">預設調色盤:</span>
+            <div class="flex items-center gap-1.5" id="picker-hair-colors">
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#FFE66D" data-color="#FFE66D"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#BC6C25" data-color="#BC6C25"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#2B2D42" data-color="#2B2D42"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#FF6B6B" data-color="#FF6B6B"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#00BBF9" data-color="#00BBF9"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#A8DADC" data-color="#A8DADC"></span>
+            </div>
+            <input type="color" id="picker-hair-hex" value="#FFE66D" class="w-6 h-6 rounded cursor-pointer border-0 p-0 ml-auto" />
+          </div>
+        </div>
+
+        <!-- 衣服款式與配色 (Outfit & Color) -->
+        <div class="p-3 bg-teal-50/70 rounded-2xl border border-teal-200">
+          <label class="block text-teal-900 mb-1">👔 衣服款式 (Outfit Style) & 服飾染色 (Color Tint):</label>
+          <div class="grid grid-cols-4 gap-2 mb-2" id="picker-outfit-group">
+            <button type="button" class="outfit-btn p-1.5 rounded-lg border-2 border-teal-500 bg-white text-[11px] font-black" data-outfit="hoodie">連帽衫 Hoodie</button>
+            <button type="button" class="outfit-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-outfit="suit">精英西裝 Suit</button>
+            <button type="button" class="outfit-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-outfit="apron">咖啡圍裙 Apron</button>
+            <button type="button" class="outfit-btn p-1.5 rounded-lg border-2 border-slate-200 bg-white text-[11px] font-black" data-outfit="sweater">麻花毛衣 Sweater</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] text-teal-800 font-extrabold">預設調色盤:</span>
+            <div class="flex items-center gap-1.5" id="picker-outfit-colors">
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#4ECDC4" data-color="#4ECDC4"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#FF6B6B" data-color="#FF6B6B"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#1A535C" data-color="#1A535C"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#9B5DE5" data-color="#9B5DE5"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#F7B267" data-color="#F7B267"></span>
+              <span class="w-5 h-5 rounded-full cursor-pointer border-2 border-white shadow color-swatch" style="background:#3A86FF" data-color="#3A86FF"></span>
+            </div>
+            <input type="color" id="picker-outfit-hex" value="#4ECDC4" class="w-6 h-6 rounded cursor-pointer border-0 p-0 ml-auto" />
+          </div>
+        </div>
+
+        <!-- 頭頂跟隨自訂狀態泡泡 (Customizable Overhead Tailing Bubble) -->
+        <div>
+          <label class="block text-slate-600 mb-1">💭 頭頂跟隨專屬狀態泡泡 (Tailing Status Bubble):</label>
+          <div class="grid grid-cols-7 gap-1.5" id="picker-bubble-group">
+            <button type="button" class="bubble-btn p-2 rounded-xl border-2 border-emerald-400 bg-emerald-50 flex flex-col items-center hover:scale-105 transition" data-bubble="code" title="Coding">
+              <span class="text-base">💻</span>
+            </button>
+            <button type="button" class="bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="coffee" title="Coffee Time">
+              <span class="text-base">☕</span>
+            </button>
+            <button type="button" class="bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="rocket" title="Ship It!">
+              <span class="text-base">🚀</span>
+            </button>
+            <button type="button" class="bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="sleep" title="Power Nap">
+              <span class="text-base">💤</span>
+            </button>
+            <button type="button" class="bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="star" title="VIP Star">
+              <span class="text-base">🌟</span>
+            </button>
+            <button type="button" class="bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="leaf" title="Cozy Leaf">
+              <span class="text-base">🍃</span>
+            </button>
+            <button type="button" class="bubble-btn p-2 rounded-xl border-2 border-slate-200 bg-white flex flex-col items-center hover:scale-105 transition" data-bubble="fire" title="On Fire">
+              <span class="text-base">🔥</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+          <button type="button" id="btn-cancel-avatar" class="px-4 py-2 rounded-xl border-2 border-slate-300 text-slate-600 hover:bg-slate-100 transition">
+            取消
+          </button>
+          <button type="submit" class="temple-glass-card !bg-emerald-500 !text-white px-6 py-2 rounded-xl font-black text-xs hover:scale-105 active:scale-95 transition shadow-lg">
+            💾 保存裝扮設定 (Save Configuration)
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
