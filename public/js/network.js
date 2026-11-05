@@ -593,6 +593,12 @@ export class NetworkManager {
     }
   }
 
+  sendRequestMediaSync() {
+    if (this.socket) {
+      this.socket.emit('request_media_sync');
+    }
+  }
+
   // ==========================================================================
   // DOM 輔助交互方法
   // ==========================================================================

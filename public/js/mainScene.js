@@ -167,7 +167,7 @@ export class MainScene extends Phaser.Scene {
     // 6. 連接 Socket.io WebSocket 服務器
     this.network.connect();
 
-    // 7. 綁定鍵盤方向鍵輸入
+    // 7. 綁定鍵盤方向鍵輸入與 E 鍵互動鍵
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = {
       up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
@@ -175,6 +175,7 @@ export class MainScene extends Phaser.Scene {
       left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
       right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
     };
+    this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
   }
 
   // ==========================================================================
@@ -735,6 +736,24 @@ export class MainScene extends Phaser.Scene {
   update(time, delta) {
     if (!this.player || !this.player.body) return;
 
+    // 0. 檢查鍵盤 E 鍵快捷互動 / 坐下與站起 (Press E to interact, if sit also press E to stand up)
+    if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
+      const activeEl = document.activeElement;
+      const isInputFocused = activeEl && (
+        activeEl.tagName === 'INPUT' || 
+        activeEl.tagName === 'TEXTAREA' || 
+        activeEl.isContentEditable
+      );
+      if (!isInputFocused) {
+        if (this.mutexMachine && this.mutexMachine.isSitting) {
+          this.performStandUp();
+          return;
+        } else if (this.ui && this.ui.nearbyInteractive) {
+          this.ui.triggerCurrentInteractive();
+        }
+      }
+    }
+
     // 1. 同步外觀容器與物理實體座標
     this.playerContainer.x = this.player.x;
     this.playerContainer.y = this.player.y;
@@ -986,11 +1005,17 @@ export class MainScene extends Phaser.Scene {
           minDistance = d;
           closest = {
             type: 'CHAIR',
-            label: '🪑 Press Action or Stand button to Sit',
+            label: '🪑 按 [E] 坐下 (Press [E] or Action to Sit)',
             data: chair
           };
         }
       }
+    } else {
+      closest = {
+        type: 'SITTING',
+        label: '🪑 按 [E] 站起 (Press [E] or STAND to stand up)',
+        data: this.mutexMachine.activeChair
+      };
     }
 
     // 更新 UI 提示 Banner 與 Action 按鈕
@@ -1020,6 +1045,14 @@ export class MainScene extends Phaser.Scene {
       y: chair.y,
       anim: 'sit_down'
     });
+
+    if (this.ui) {
+      this.ui.setNearbyInteractive({
+        type: 'SITTING',
+        label: '🪑 按 [E] 站起 (Press [E] or STAND to stand up)',
+        data: chair
+      });
+    }
   }
 
   /**
@@ -1041,6 +1074,10 @@ export class MainScene extends Phaser.Scene {
       standX,
       standY
     });
+
+    if (this.ui) {
+      this.ui.setNearbyInteractive(null);
+    }
   }
 
   /**
@@ -1165,10 +1202,12 @@ export class MainScene extends Phaser.Scene {
   }
 
   // ==========================================================================
-  // 9. 多媒體投影區更新 (YouTube Player DOM Management)
+  // 9. 多媒體投影區更新 (YouTube Player DOM Management & Multiplayer Audio Sync)
   // ==========================================================================
   updateMediaState(mediaData) {
+    if (!mediaData) return;
     this.currentMediaData = mediaData;
+
     const banner = document.getElementById('media-now-playing');
     if (banner) {
       banner.textContent = `▶ Now Playing: ${mediaData.title || 'Multiplayer Video'}`;
@@ -1179,19 +1218,76 @@ export class MainScene extends Phaser.Scene {
       headerTitle.textContent = mediaData.title || 'EDM Club Mix 2026';
     }
 
+    // 計算多人同步播放進度 (Elapsed Seconds from Server Started Timestamp)
+    const serverTime = mediaData.serverTime || Date.now();
+    const clockSkew = Date.now() - serverTime;
+    const startedAt = mediaData.startedAt || serverTime;
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - clockSkew - startedAt) / 1000));
+
     const content = document.getElementById('youtube-player-content');
-    if (content && mediaData.embedUrl) {
+    const existingIframe = document.getElementById('youtube-iframe');
+
+    // 若當前已有 iframe 且為同一首影片，則使用 postMessage 直接對準秒數，避免 DOM 重繪刷新造成音訊斷續
+    if (existingIframe && this.activeVideoId && this.activeVideoId === mediaData.videoId) {
+      this.syncYouTubeAudio(elapsedSeconds);
+      return;
+    }
+
+    this.activeVideoId = mediaData.videoId || 'GWn2Xe-t8DM';
+    let embedUrl = mediaData.embedUrl || `https://www.youtube.com/embed/${this.activeVideoId}?autoplay=1&mute=0&loop=1&controls=1&enablejsapi=1`;
+    if (!embedUrl.includes('enablejsapi=1')) {
+      embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'enablejsapi=1';
+    }
+    if (elapsedSeconds > 0 && !embedUrl.includes('start=')) {
+      embedUrl += `&start=${elapsedSeconds}`;
+    }
+
+    if (content) {
       content.innerHTML = `
         <iframe 
           id="youtube-iframe"
           width="100%" 
           height="100%" 
-          src="${mediaData.embedUrl}" 
+          src="${embedUrl}" 
           frameborder="0" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
           allowfullscreen>
         </iframe>
       `;
+    }
+  }
+
+  /**
+   * 與全房同事同步音訊播放時間點 (Sync YouTube Audio with Room)
+   */
+  syncYouTubeAudio(forcedElapsed) {
+    const iframe = document.getElementById('youtube-iframe');
+    if (!iframe || !iframe.contentWindow) return;
+
+    let elapsed = forcedElapsed;
+    if (typeof elapsed !== 'number') {
+      if (this.currentMediaData && this.currentMediaData.startedAt) {
+        const serverTime = this.currentMediaData.serverTime || Date.now();
+        const clockSkew = Date.now() - serverTime;
+        elapsed = Math.max(0, Math.floor((Date.now() - clockSkew - this.currentMediaData.startedAt) / 1000));
+      } else {
+        elapsed = 0;
+      }
+    }
+
+    try {
+      iframe.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: 'seekTo',
+        args: [elapsed, true]
+      }), '*');
+      iframe.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: 'playVideo',
+        args: []
+      }), '*');
+    } catch (e) {
+      console.warn('[YouTube Sync] 跨域通訊警告:', e);
     }
   }
 

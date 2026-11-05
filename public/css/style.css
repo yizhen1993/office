@@ -398,3 +398,125 @@ body, html {
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1.0); }
 }
+
+/* ==========================================================================
+   7. 移動端專屬整潔排版與 1 行聊天室折疊 (Mobile-Only Tidy View & 1-Line Chat Collapse)
+   嚴格限定在 @media (max-width: 639px)，保證桌面版 (>=640px) 佈局 100% 不受任何影響
+   ========================================================================== */
+@media (max-width: 639px) {
+  /* 1. 移動端聊天懸浮層位置 (位於搖桿上方，預設或折疊時僅保留 1 行) */
+  #chat-overlay {
+    bottom: 142px;
+    left: 12px;
+    width: 250px;
+    max-width: calc(100vw - 120px);
+    gap: 5px;
+    transition: all 0.2s ease-out;
+  }
+
+  /* 折疊狀態: 消息框只保留 1 行 (Collapse until 1 line of chat only) */
+  #chat-overlay.is-mobile-collapsed .chat-history-window {
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    overflow: hidden !important;
+    padding: 3px 8px !important;
+    border-radius: 0.75rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+  }
+
+  /* 只顯示最新的一條聊天訊息，超出部分以單行省略號截斷 */
+  #chat-overlay.is-mobile-collapsed .chat-history-window .chat-bubble-log:not(:last-child) {
+    display: none !important;
+  }
+  #chat-overlay.is-mobile-collapsed .chat-history-window .chat-bubble-log:last-child {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    padding: 2px 6px !important;
+    margin: 0 !important;
+    font-size: 11px !important;
+    line-height: 20px !important;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: none;
+  }
+
+  /* 折疊時隱藏快捷表情列，釋放手機遊戲視野 */
+  #chat-overlay.is-mobile-collapsed #chat-quick-emotes {
+    display: none !important;
+  }
+
+  /* 移動端展開狀態: 適當高度與滾動 */
+  #chat-overlay:not(.is-mobile-collapsed) .chat-history-window {
+    height: 125px;
+    max-height: 135px;
+  }
+
+  /* 移動端輸入框輕量化 */
+  #chat-overlay #chat-input {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+  #chat-overlay form button {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  /* 2. 移動端右下象限控制台整齊緊湊網格佈局 (Tidy Mobile Action HUD) */
+  #mobile-action-hud {
+    bottom: 12px;
+    right: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, 46px);
+    gap: 6px;
+  }
+  #mobile-action-hud .temple-btn {
+    width: 46px;
+    height: 46px;
+    padding: 2px;
+    border-width: 2px;
+  }
+  #mobile-action-hud .temple-btn-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+  #mobile-action-hud .temple-btn-text {
+    font-size: 7px;
+    letter-spacing: 0;
+    margin-top: 1px;
+  }
+
+  /* 3. 移動端左下象限觸控搖桿整齊適配 (不被聊天室遮擋) */
+  #joystick-touch-zone {
+    bottom: 12px;
+    left: 12px;
+    width: 120px;
+    height: 120px;
+  }
+  #virtual-joystick-base {
+    width: 86px;
+    height: 86px;
+  }
+  #virtual-joystick-thumb {
+    width: 38px;
+    height: 38px;
+  }
+
+  /* 4. 移動端頂部導覽列緊湊整潔 */
+  header {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+  header .temple-glass-card {
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  header .temple-glass-card .w-10 {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+}

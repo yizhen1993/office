@@ -214,16 +214,30 @@ export class UIManager {
       };
     }
 
-    // 鍵盤空白鍵 (Space) 與 E 鍵快速觸發互動
+    // 鍵盤空白鍵 (Space) 與 E 鍵快速觸發互動 / 站起 (Press E to interact or stand up)
     window.addEventListener('keydown', (e) => {
-      // 避免在聊天輸入框輸入時觸發
-      if (document.activeElement === this.chatInput) return;
+      // 避免在文字輸入框或自訂對話框輸入時誤觸
+      const activeTag = document.activeElement ? document.activeElement.tagName : '';
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+      if (document.activeElement && document.activeElement.isContentEditable) return;
       if (this.mutex.isMiniGaming) return;
 
-      if (e.key === 'e' || e.key === 'E' || e.key === ' ') {
+      if (e.key === 'e' || e.key === 'E') {
+        if (this.mutex && this.mutex.isSitting) {
+          e.preventDefault();
+          this.scene.performStandUp();
+          return;
+        }
         if (this.nearbyInteractive) {
           e.preventDefault();
           this.triggerCurrentInteractive();
+          return;
+        }
+      } else if (e.key === ' ') {
+        if (this.nearbyInteractive) {
+          e.preventDefault();
+          this.triggerCurrentInteractive();
+          return;
         }
       } else if (e.key === 'Shift') {
         // Shift 鍵衝刺
@@ -264,6 +278,35 @@ export class UIManager {
         }
       };
     });
+
+    // 移動端折疊至 1 行聊天室切換 (Mobile 1-Line Chat Toggle)
+    const chatOverlay = document.getElementById('chat-overlay');
+    const mobileToggleBar = document.getElementById('mobile-chat-toggle-bar');
+    const toggleBtn = document.getElementById('btn-toggle-chat-collapse');
+    const toggleLabel = document.getElementById('mobile-chat-toggle-label');
+    const toggleArrow = document.getElementById('chat-collapse-arrow');
+
+    const toggleMobileChat = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (!chatOverlay) return;
+      const isCollapsed = chatOverlay.classList.toggle('is-mobile-collapsed');
+      if (toggleArrow) {
+        toggleArrow.textContent = isCollapsed ? '▲' : '▼';
+      }
+      if (toggleLabel) {
+        toggleLabel.textContent = isCollapsed ? '聊天室 (折疊中)' : '聊天室 (已展開)';
+      }
+    };
+
+    if (mobileToggleBar) {
+      mobileToggleBar.onclick = toggleMobileChat;
+    }
+    if (toggleBtn) {
+      toggleBtn.onclick = toggleMobileChat;
+    }
   }
 
   // ==========================================================================
@@ -336,6 +379,24 @@ export class UIManager {
         e.preventDefault();
         e.stopPropagation();
         this.collapseYouTubePlayer();
+      };
+    }
+
+    // 多人音樂全房同步按鈕 (Sync Audio with Room)
+    const btnSync = document.getElementById('btn-sync-youtube');
+    if (btnSync) {
+      btnSync.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.network && this.network.sendRequestMediaSync) {
+          this.network.sendRequestMediaSync();
+        }
+        if (this.scene && this.scene.syncYouTubeAudio) {
+          this.scene.syncYouTubeAudio();
+        }
+        if (this.scene && this.scene.showSystemNotice) {
+          this.scene.showSystemNotice('🎵 已與全房同事同步音樂播放進度！');
+        }
       };
     }
 
@@ -888,11 +949,22 @@ export class UIManager {
   }
 
   triggerCurrentInteractive() {
+    // 若當前正處於坐姿，優先執行站起動作
+    if (this.scene && this.scene.mutexMachine && this.scene.mutexMachine.isSitting) {
+      this.scene.performStandUp();
+      return;
+    }
+
     if (!this.nearbyInteractive) return;
 
     const { type, data } = this.nearbyInteractive;
 
     switch (type) {
+      case 'SITTING':
+        // 站起交互
+        this.scene.performStandUp();
+        break;
+
       case 'CHAIR':
         // 坐下交互
         this.scene.performSitDown(data);

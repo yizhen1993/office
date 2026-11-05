@@ -59,9 +59,11 @@ const rooms = {
     },
     media: {
       videoUrl: 'https://music.youtube.com/watch?v=GWn2Xe-t8DM&list=RDAMVMGWn2Xe-t8DM',
-      embedUrl: 'https://www.youtube.com/embed/GWn2Xe-t8DM?autoplay=1&mute=0&loop=1&playlist=GWn2Xe-t8DM&list=RDAMVMGWn2Xe-t8DM&controls=1',
+      embedUrl: 'https://www.youtube.com/embed/GWn2Xe-t8DM?autoplay=1&mute=0&loop=1&playlist=GWn2Xe-t8DM&list=RDAMVMGWn2Xe-t8DM&controls=1&enablejsapi=1',
+      videoId: 'GWn2Xe-t8DM',
       title: '💥⚡ EDM Remix & Popular Songs 2026 | Club Banger Mix',
-      setBy: 'System'
+      setBy: 'System',
+      startedAt: Date.now()
     },
     clubMode: false // 🪩 TOGGLE CLUB 夜店模式全房同步
   }
@@ -123,7 +125,7 @@ function sanitizeYouTubeEmbedUrl(inputUrl) {
     const listParam = listMatch ? `&list=${listMatch[1]}` : '';
     return {
       videoId,
-      embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&loop=1&playlist=${videoId}${listParam}&controls=1`
+      embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&loop=1&playlist=${videoId}${listParam}&controls=1&enablejsapi=1`
     };
   }
   return null;
@@ -178,7 +180,10 @@ io.on('connection', (socket) => {
       selfId: socket.id,
       players: rooms.office.players,
       roulette: rooms.office.roulette,
-      currentMedia: rooms.office.media,
+      currentMedia: {
+        ...rooms.office.media,
+        serverTime: Date.now()
+      },
       clubMode: rooms.office.clubMode
     });
 
@@ -398,18 +403,34 @@ io.on('connection', (socket) => {
 
     const sanitized = sanitizeYouTubeEmbedUrl(data.url);
     if (sanitized) {
+      const now = Date.now();
       rooms.office.media = {
         videoUrl: data.url,
         embedUrl: sanitized.embedUrl,
+        videoId: sanitized.videoId,
         title: data.title || 'Shared YouTube Stream',
-        setBy: player.name
+        setBy: player.name,
+        startedAt: now
       };
 
-      console.log(`[Media] 📺 玩家 ${player.name} 更新了投影螢幕: ${sanitized.embedUrl}`);
-      io.to('office').emit('media_state_changed', rooms.office.media);
+      console.log(`[Media] 📺 玩家 ${player.name} 更新了投影螢幕: ${sanitized.embedUrl} (同步時間戳: ${now})`);
+      io.to('office').emit('media_state_changed', {
+        ...rooms.office.media,
+        serverTime: now
+      });
     } else {
       socket.emit('media_error', { message: '請輸入有效的 YouTube 影片網址！' });
     }
+  });
+
+  // ==========================================================================
+  // 事件 H2: 多人音樂全房同步請求 (request_media_sync)
+  // ==========================================================================
+  socket.on('request_media_sync', () => {
+    socket.emit('media_state_changed', {
+      ...rooms.office.media,
+      serverTime: Date.now()
+    });
   });
 
   // ==========================================================================

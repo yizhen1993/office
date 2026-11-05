@@ -33,21 +33,32 @@
   <!-- 2. 多媒體投影串流圖層 (#youtube-player-layer) 與懸浮折疊控制 -->
   <!-- ========================================================================= -->
   <div id="youtube-player-layer" class="hidden sm:block">
-    <!-- 頂部控制列 (Control Header Bar with Collapse Button) -->
+    <!-- 頂部控制列 (Control Header Bar with Collapse & Sync Buttons) -->
     <div id="youtube-header-bar" class="absolute top-0 inset-x-0 h-7 bg-gradient-to-b from-black/80 via-black/50 to-transparent flex items-center justify-between px-2.5 z-20 pointer-events-auto">
       <div class="flex items-center gap-1.5 text-[11px] font-black text-white drop-shadow">
         <span class="animate-pulse text-xs">🎵</span>
-        <span class="truncate max-w-[190px]" id="youtube-header-title">EDM Club Banger Mix 2026</span>
+        <span class="truncate max-w-[150px] sm:max-w-[190px]" id="youtube-header-title">EDM Club Banger Mix 2026</span>
       </div>
-      <button 
-        id="btn-collapse-youtube" 
-        type="button" 
-        class="px-2 py-0.5 rounded-lg bg-black/60 hover:bg-amber-500 hover:text-amber-950 text-white font-extrabold text-[10px] hover:scale-105 active:scale-95 transition flex items-center gap-1 border border-white/30 backdrop-blur-sm cursor-pointer shadow"
-        title="收起為懸浮圖標 (Collapse to Floating Icon)"
-      >
-        <span>🗕</span>
-        <span>收起</span>
-      </button>
+      <div class="flex items-center gap-1.5">
+        <button 
+          id="btn-sync-youtube" 
+          type="button" 
+          class="px-2 py-0.5 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white font-extrabold text-[10px] hover:scale-105 active:scale-95 transition flex items-center gap-1 border border-emerald-300/40 backdrop-blur-sm cursor-pointer shadow"
+          title="與全房同事同步音樂進度 (Sync audio progress with room)"
+        >
+          <span>🔄</span>
+          <span class="hidden sm:inline">全房同步</span>
+        </button>
+        <button 
+          id="btn-collapse-youtube" 
+          type="button" 
+          class="px-2 py-0.5 rounded-lg bg-black/60 hover:bg-amber-500 hover:text-amber-950 text-white font-extrabold text-[10px] hover:scale-105 active:scale-95 transition flex items-center gap-1 border border-white/30 backdrop-blur-sm cursor-pointer shadow"
+          title="收起為懸浮圖標 (Collapse to Floating Icon)"
+        >
+          <span>🗕</span>
+          <span>收起</span>
+        </button>
+      </div>
     </div>
 
     <div id="youtube-player-content" class="w-full h-full">
@@ -56,7 +67,7 @@
         id="youtube-iframe"
         width="100%" 
         height="100%" 
-        src="https://www.youtube.com/embed/GWn2Xe-t8DM?autoplay=1&mute=0&loop=1&playlist=GWn2Xe-t8DM&list=RDAMVMGWn2Xe-t8DM&controls=1" 
+        src="https://www.youtube.com/embed/GWn2Xe-t8DM?autoplay=1&mute=0&loop=1&playlist=GWn2Xe-t8DM&list=RDAMVMGWn2Xe-t8DM&controls=1&enablejsapi=1" 
         frameborder="0" 
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
         allowfullscreen>
@@ -162,7 +173,18 @@
   <!-- ========================================================================= -->
   <!-- 5. 滾動歷史聊天系統 (#chat-overlay) -->
   <!-- ========================================================================= -->
-  <div id="chat-overlay">
+  <div id="chat-overlay" class="is-mobile-collapsed">
+    <!-- 移動端折疊/展開控制列 (Mobile Header Toggle Bar: sm:hidden 保證桌面版完全不顯示也不受影響) -->
+    <div id="mobile-chat-toggle-bar" class="sm:hidden flex items-center justify-between px-2.5 py-1 temple-glass-card !bg-amber-50/95 text-[11px] font-black text-amber-950 cursor-pointer select-none">
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs">💬</span>
+        <span id="mobile-chat-toggle-label">聊天室 (折疊中)</span>
+      </div>
+      <button id="btn-toggle-chat-collapse" type="button" class="w-5 h-5 rounded-md bg-amber-200/90 hover:bg-amber-300 text-amber-900 flex items-center justify-center text-[10px] font-bold" title="切換聊天室展開/折疊至1行">
+        <span id="chat-collapse-arrow">▲</span>
+      </button>
+    </div>
+
     <!-- 歷史消息日誌視窗 (Scrolling message history log window) -->
     <div id="chat-history-log" class="temple-glass-card chat-history-window">
       <div class="chat-bubble-log text-slate-500">
@@ -171,7 +193,7 @@
     </div>
 
     <!-- 快捷表情小按鈕 -->
-    <div class="flex items-center gap-1 temple-glass-card px-2 py-1 w-fit">
+    <div id="chat-quick-emotes" class="flex items-center gap-1 temple-glass-card px-2 py-1 w-fit">
       <button class="quick-chat-btn text-sm hover:scale-125 transition p-1" data-msg="嗨大家！👋">👋</button>
       <button class="quick-chat-btn text-sm hover:scale-125 transition p-1" data-msg="喝杯南洋 Kopi 休息一下 ☕">☕</button>
       <button class="quick-chat-btn text-sm hover:scale-125 transition p-1" data-msg="太讚了！慶祝一下 🎉">🎉</button>
