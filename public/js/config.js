@@ -26,43 +26,44 @@ export const GAME_CONFIG = {
     UI_OVERLAY: 50000
   },
 
-  // 網格空間分區佈局錨點 (Zone Coordinates)
+  // 網格空間分區佈局錨點 (Zone Coordinates - 重新規劃：電視與兩側辦公桌共同移至左側，電視置中於兩側桌群之間)
   ZONES: {
-    // 1. 主辦公區: 8個辦公桌矩陣 (2x2 兩大集群)
-    OFFICE_CLUSTER_1: { x: 300, y: 380 },
-    OFFICE_CLUSTER_2: { x: 740, y: 380 },
+    // 1. 主辦公區第 1 集群 (左側桌群: x: 180)
+    OFFICE_CLUSTER_1: { x: 180, y: 340 },
 
-    // 2. 多媒體投影區 (北面大屏幕 & 專屬 5 個沙發座)
+    // 2. 遊戲娛樂區 (置於兩側桌群正中間: x: 520, 電視與 PS5 在北側，L型沙發居中)
+    ARCADE_LOUNGE: { x: 520, y: 360, tvPos: { x: 520, y: 240 } },
+
+    // 3. 主辦公區第 2 集群 (右側桌群: x: 740)
+    OFFICE_CLUSTER_2: { x: 740, y: 340 },
+
+    // 4. 多媒體投影區 (移至東北面大露台，保留 5 個獨立沙發座)
     MEDIA_SCREEN: {
-      x: 520,
-      y: 130,
+      x: 1220,
+      y: 140,
       controlStickRadius: 140, // 規範要求: 120-150px 近距離交互感應棒
       audioRadius: 380,
-      // 正前方恰好 5 個獨立圓潤沙發座位 (Exactly 5 distinct sofa sitting nodes)
       sofaSeats: [
-        { id: 'yt_sofa_1', x: 420, y: 220, label: 'Sofa Seat 1' },
-        { id: 'yt_sofa_2', x: 470, y: 220, label: 'Sofa Seat 2' },
-        { id: 'yt_sofa_3', x: 520, y: 220, label: 'Sofa Seat 3' },
-        { id: 'yt_sofa_4', x: 570, y: 220, label: 'Sofa Seat 4' },
-        { id: 'yt_sofa_5', x: 620, y: 220, label: 'Sofa Seat 5' }
+        { id: 'yt_sofa_1', x: 1120, y: 230, label: 'Sofa Seat 1' },
+        { id: 'yt_sofa_2', x: 1170, y: 230, label: 'Sofa Seat 2' },
+        { id: 'yt_sofa_3', x: 1220, y: 230, label: 'Sofa Seat 3' },
+        { id: 'yt_sofa_4', x: 1270, y: 230, label: 'Sofa Seat 4' },
+        { id: 'yt_sofa_5', x: 1320, y: 230, label: 'Sofa Seat 5' }
       ]
     },
 
-    // 3. 遊戲娛樂區 (L型沙發 + 復古CRT電視 + PS5)
-    ARCADE_LOUNGE: { x: 1220, y: 380, tvPos: { x: 1220, y: 240 } },
+    // 5. 休息露台與 NPC DJ 音樂台
+    DJ_BOOTH: { x: 930, y: 140 },
 
-    // 4. 茶水點心吧檯與雙門冰箱
-    PANTRY_BAR: { x: 1220, y: 840, fridgePos: { x: 1400, y: 840 } },
+    // 6. 茶水點心吧檯與雙門冰箱 (東南側)
+    PANTRY_BAR: { x: 1240, y: 820, fridgePos: { x: 1420, y: 820 } },
 
-    // 5. 衛生間隔間 (雙獨立馬桶與洗手台)
-    RESTROOM_STALL_1: { x: 180, y: 860 },
-    RESTROOM_STALL_2: { x: 360, y: 860 },
+    // 7. 衛生間隔間 (西南側)
+    RESTROOM_STALL_1: { x: 160, y: 860 },
+    RESTROOM_STALL_2: { x: 340, y: 860 },
 
-    // 6. 賽博輪盤區
-    ROULETTE: { x: 780, y: 860 },
-
-    // 7. 休息露台與 NPC DJ 音樂台
-    DJ_BOOTH: { x: 1020, y: 150 }
+    // 8. 賽博輪盤區 (南側開闊中央廣場)
+    ROULETTE: { x: 740, y: 860 }
   },
 
   // 複合角色裝扮樣式選項 (Composite Avatar Customization Options)

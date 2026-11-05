@@ -742,12 +742,15 @@ export class UIManager {
       };
     }
 
-    // 4. 頭頂跟隨自訂狀態泡泡按鈕組 (Overhead Tailing Bubble Selection)
+    // 4. 頭頂跟隨自訂狀態泡泡按鈕組 (Overhead Tailing Bubble Selection & Free Text Input)
     const bubbleBtns = document.querySelectorAll('#picker-bubble-group .bubble-btn');
+    const customBubbleInput = document.getElementById('picker-custom-bubble-text');
+
     bubbleBtns.forEach(btn => {
       btn.onclick = () => {
         const bubble = btn.getAttribute('data-bubble');
         this.modalAvatarState.customBubble = bubble;
+        if (customBubbleInput) customBubbleInput.value = '';
         bubbleBtns.forEach(b => {
           b.classList.remove('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
           b.classList.add('border-slate-200', 'bg-white');
@@ -757,12 +760,30 @@ export class UIManager {
       };
     });
 
+    if (customBubbleInput) {
+      customBubbleInput.oninput = (e) => {
+        const val = e.target.value.trim();
+        if (val) {
+          this.modalAvatarState.customBubble = val;
+          bubbleBtns.forEach(b => {
+            b.classList.remove('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+            b.classList.add('border-slate-200', 'bg-white');
+          });
+        }
+      };
+    }
+
     // 5. 表單提交保存 (Save & Sync)
     if (form) {
       form.onsubmit = (e) => {
         e.preventDefault();
         const customName = nameInput ? nameInput.value.trim() : '';
         const finalName = customName || this.modalAvatarState.name || 'Colleague';
+
+        let finalBubble = this.modalAvatarState.customBubble || 'code';
+        if (customBubbleInput && customBubbleInput.value.trim()) {
+          finalBubble = customBubbleInput.value.trim();
+        }
 
         const finalConfig = {
           name: finalName,
@@ -774,7 +795,7 @@ export class UIManager {
             outfit: this.modalAvatarState.outfit,
             outfitColor: this.modalAvatarState.outfitColor
           },
-          customBubble: this.modalAvatarState.customBubble
+          customBubble: finalBubble
         };
 
         if (this.scene.applyPlayerCustomAvatar) {
@@ -822,8 +843,21 @@ export class UIManager {
     const outfitBtn = document.querySelector(`#picker-outfit-group [data-outfit="${this.modalAvatarState.outfit}"]`);
     if (outfitBtn) outfitBtn.click();
 
-    const bubbleBtn = document.querySelector(`#picker-bubble-group [data-bubble="${this.modalAvatarState.customBubble}"]`);
-    if (bubbleBtn) bubbleBtn.click();
+    const customBubbleInput = document.getElementById('picker-custom-bubble-text');
+    const isPreset = ['code', 'coffee', 'rocket', 'sleep', 'star', 'leaf', 'fire'].includes(this.modalAvatarState.customBubble);
+
+    if (isPreset) {
+      if (customBubbleInput) customBubbleInput.value = '';
+      const bubbleBtn = document.querySelector(`#picker-bubble-group [data-bubble="${this.modalAvatarState.customBubble}"]`);
+      if (bubbleBtn) bubbleBtn.click();
+    } else {
+      if (customBubbleInput) customBubbleInput.value = this.modalAvatarState.customBubble || '';
+      const bubbleBtns = document.querySelectorAll('#picker-bubble-group .bubble-btn');
+      bubbleBtns.forEach(b => {
+        b.classList.remove('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+        b.classList.add('border-slate-200', 'bg-white');
+      });
+    }
 
     this.avatarModal.classList.remove('hidden');
   }
@@ -932,12 +966,15 @@ export class UIManager {
       };
     }
 
-    // 4. 頭頂狀態泡泡
+    // 4. 頭頂狀態泡泡 (Overhead Bubble Selection & Free Text Input)
     const bubbleBtns = document.querySelectorAll('#welcome-bubble-group .welcome-bubble-btn');
+    const welcomeBubbleInput = document.getElementById('welcome-custom-bubble-text');
+
     bubbleBtns.forEach(btn => {
       btn.onclick = () => {
         const bubble = btn.getAttribute('data-bubble');
         this.welcomeAvatarState.customBubble = bubble;
+        if (welcomeBubbleInput) welcomeBubbleInput.value = '';
         bubbleBtns.forEach(b => {
           b.classList.remove('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
           b.classList.add('border-slate-200', 'bg-white');
@@ -946,6 +983,19 @@ export class UIManager {
         btn.classList.add('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
       };
     });
+
+    if (welcomeBubbleInput) {
+      welcomeBubbleInput.oninput = (e) => {
+        const val = e.target.value.trim();
+        if (val) {
+          this.welcomeAvatarState.customBubble = val;
+          bubbleBtns.forEach(b => {
+            b.classList.remove('border-emerald-500', 'bg-emerald-100', 'ring-2', 'ring-emerald-400');
+            b.classList.add('border-slate-200', 'bg-white');
+          });
+        }
+      };
+    }
 
     // 5. 點擊提交按鈕
     if (submitBtn) {
@@ -1017,7 +1067,11 @@ export class UIManager {
     const hairColor = this.welcomeAvatarState.hairColor || '#FFE66D';
     const hair = this.welcomeAvatarState.hair || 'spiky';
     const outfit = this.welcomeAvatarState.outfit || 'hoodie';
-    const customBubble = this.welcomeAvatarState.customBubble || 'code';
+    const welcomeBubbleInput = document.getElementById('welcome-custom-bubble-text');
+    let customBubble = this.welcomeAvatarState.customBubble || 'code';
+    if (welcomeBubbleInput && welcomeBubbleInput.value.trim()) {
+      customBubble = welcomeBubbleInput.value.trim();
+    }
 
     const newAvatarData = {
       name: name,

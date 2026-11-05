@@ -154,8 +154,8 @@ io.on('connection', (socket) => {
       outfitColor: avatar.shirtColor
     },
     customBubble: 'code',
-    x: 400,
-    y: 300,
+    x: 520,
+    y: 540,
     anim: 'idle',
     heldItem: 'none',
     isSprinting: false,
@@ -372,7 +372,7 @@ io.on('connection', (socket) => {
       player.chairId = data.chairId;
       player.x = data.x;
       player.y = data.y;
-      player.anim = 'sit_down';
+      player.anim = data.anim || 'sit_up';
     } else {
       player.isSitting = false;
       player.chairId = null;
@@ -387,6 +387,8 @@ io.on('connection', (socket) => {
       y: player.y,
       anim: player.anim,
       heldItem: player.heldItem,
+      avatarData: player.avatarData,
+      customBubble: player.customBubble,
       isSprinting: false,
       isSitting: player.isSitting,
       chairId: player.chairId,

@@ -314,18 +314,24 @@ export class NetworkManager {
     }).setOrigin(0.5);
     container.add(nameText);
 
-    // 6. 自訂頭頂跟隨狀態泡泡 (直接加入 container 扁平管理)
+    // 6. 自訂頭頂跟隨狀態泡泡 (直接加入 container 扁平管理，支援自由文字與Emoji)
     let bubbleSprite = null;
-    const bubbleKey = `bubble_badge_${customBubble}`;
-    if (this.scene.textures.exists(bubbleKey)) {
-      bubbleSprite = this.scene.add.sprite(0, -50, bubbleKey);
-      bubbleSprite.setScale(0.85);
+    let bubbleKey = null;
+    if (this.scene.getOrCreateStatusBubbleTexture) {
+      bubbleKey = this.scene.getOrCreateStatusBubbleTexture(customBubble);
+    } else {
+      bubbleKey = `bubble_badge_${customBubble}`;
+    }
+
+    if (bubbleKey && this.scene.textures.exists(bubbleKey)) {
+      bubbleSprite = this.scene.add.sprite(0, -52, bubbleKey);
+      bubbleSprite.setScale(0.95);
       container.add(bubbleSprite);
 
       // 泡泡懸浮微動緩動動畫
       this.scene.tweens.add({
         targets: bubbleSprite,
-        y: -54,
+        y: -56,
         duration: 1200,
         yoyo: true,
         repeat: -1,
@@ -417,10 +423,29 @@ export class NetworkManager {
     }
 
     // 4. 頭頂狀態徽章
-    if (remote.bubbleSprite) {
-      const bubbleKey = `bubble_badge_${customBubble}`;
-      if (this.scene.textures.exists(bubbleKey)) {
-        remote.bubbleSprite.setTexture(bubbleKey);
+    if (customBubble) {
+      let bubbleKey = null;
+      if (this.scene.getOrCreateStatusBubbleTexture) {
+        bubbleKey = this.scene.getOrCreateStatusBubbleTexture(customBubble);
+      } else {
+        bubbleKey = `bubble_badge_${customBubble}`;
+      }
+      if (bubbleKey && this.scene.textures.exists(bubbleKey)) {
+        if (!remote.bubbleSprite) {
+          remote.bubbleSprite = this.scene.add.sprite(0, -52, bubbleKey);
+          remote.bubbleSprite.setScale(0.95);
+          remote.container.add(remote.bubbleSprite);
+          this.scene.tweens.add({
+            targets: remote.bubbleSprite,
+            y: -56,
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+        } else {
+          remote.bubbleSprite.setTexture(bubbleKey);
+        }
       }
     }
 
@@ -460,8 +485,12 @@ export class NetworkManager {
       remote.container.x = Phaser.Math.Linear(prevX, remote.targetX, lerpFactor);
       remote.container.y = Phaser.Math.Linear(prevY, remote.targetY, lerpFactor);
 
-      // 動態 Y 深度排序
-      remote.container.setDepth(remote.container.y);
+      // 動態 Y 深度排序 (坐姿時提升深度，確保顯示在椅墊上方)
+      if (remote.isSitting) {
+        remote.container.setDepth(remote.container.y + 12);
+      } else {
+        remote.container.setDepth(remote.container.y);
+      }
     });
 
     // 本地座標節流上報

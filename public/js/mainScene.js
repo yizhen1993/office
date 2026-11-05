@@ -193,23 +193,23 @@ export class MainScene extends Phaser.Scene {
     const baseFloor = this.add.tileSprite(W / 2, H / 2, W, H, 'floor_wood');
     baseFloor.setDepth(GAME_CONFIG.LAYERS.FLOOR);
 
-    // B. 主辦公區大圓角薄荷綠地毯 (2塊地毯覆蓋兩大工作矩陣)
-    const rug1 = this.add.image(GAME_CONFIG.ZONES.OFFICE_CLUSTER_1.x + 80, GAME_CONFIG.ZONES.OFFICE_CLUSTER_1.y + 60, 'rug_office');
+    // B. 主辦公區大圓角薄荷綠地毯 (2塊地毯覆蓋兩大工作矩陣，重新對齊至左側)
+    const rug1 = this.add.image(GAME_CONFIG.ZONES.OFFICE_CLUSTER_1.x + 64, GAME_CONFIG.ZONES.OFFICE_CLUSTER_1.y + 55, 'rug_office');
     rug1.setDepth(GAME_CONFIG.LAYERS.FLOOR + 1);
 
-    const rug2 = this.add.image(GAME_CONFIG.ZONES.OFFICE_CLUSTER_2.x + 80, GAME_CONFIG.ZONES.OFFICE_CLUSTER_2.y + 60, 'rug_office');
+    const rug2 = this.add.image(GAME_CONFIG.ZONES.OFFICE_CLUSTER_2.x + 64, GAME_CONFIG.ZONES.OFFICE_CLUSTER_2.y + 55, 'rug_office');
     rug2.setDepth(GAME_CONFIG.LAYERS.FLOOR + 1);
 
-    // C. 遊戲娛樂區溫馨珊瑚粉地毯
-    const rugLounge = this.add.image(GAME_CONFIG.ZONES.ARCADE_LOUNGE.x, GAME_CONFIG.ZONES.ARCADE_LOUNGE.y + 20, 'rug_lounge');
+    // C. 遊戲娛樂區溫馨珊瑚粉地毯 (置中於兩側桌群之間)
+    const rugLounge = this.add.image(GAME_CONFIG.ZONES.ARCADE_LOUNGE.x, GAME_CONFIG.ZONES.ARCADE_LOUNGE.y - 10, 'rug_lounge');
     rugLounge.setDepth(GAME_CONFIG.LAYERS.FLOOR + 1);
 
-    // D. 茶水區棋盤格地磚 (Checkerboard Linoleum)
+    // D. 茶水區棋盤格地磚 (Checkerboard Linoleum - 東南側)
     const pantryTile = this.add.tileSprite(GAME_CONFIG.ZONES.PANTRY_BAR.x + 20, GAME_CONFIG.ZONES.PANTRY_BAR.y + 20, 360, 260, 'floor_linoleum');
     pantryTile.setDepth(GAME_CONFIG.LAYERS.FLOOR + 1);
 
-    // E. 衛生間清爽淡藍瓷磚
-    const wcTile = this.add.tileSprite(270, 880, 380, 280, 'floor_restroom');
+    // E. 衛生間清爽淡藍瓷磚 (西南側)
+    const wcTile = this.add.tileSprite(250, 880, 380, 280, 'floor_restroom');
     wcTile.setDepth(GAME_CONFIG.LAYERS.FLOOR + 1);
 
     // F. 世界外圍防穿透護牆 (Room Perimeter Solid Walls)
@@ -271,15 +271,18 @@ export class MainScene extends Phaser.Scene {
           cpu.setDepth(dy + 1);
 
           // C. 旋轉人體工學椅 (Swivel Office Chair)
-          const chairY = dy + 38;
+          const chairY = dy + 34;
           const chair = this.add.image(dx - 18, chairY, 'office_chair');
           chair.setDepth(chairY - 1); // 椅子比桌子稍前，可被玩家坐下覆蓋
 
-          // 註冊為可坐下的椅子交互點
+          // 註冊為可坐下的椅子交互點 (含精確坐下座標、坐向、深度與站起安全點)
           const chairData = {
             id: currentDeskId,
             x: dx - 18,
             y: chairY,
+            sitX: dx - 18,
+            sitY: chairY - 10,
+            dir: 'up',
             standX: dx - 18,
             standY: chairY + 28
           };
@@ -292,7 +295,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   /**
-   * 2. 多媒體投影區 (北面大屏幕 YouTube Proximity Player)
+   * 2. 多媒體投影區 (東北面大屏幕 YouTube Proximity Player)
    */
   buildMultimediaZone() {
     const pos = GAME_CONFIG.ZONES.MEDIA_SCREEN;
@@ -320,9 +323,12 @@ export class MainScene extends Phaser.Scene {
       this.chairs.push({
         id: seat.id,
         x: seat.x,
-        y: seat.y - 2,
+        y: seat.y,
+        sitX: seat.x,
+        sitY: seat.y - 8,
+        dir: 'up',
         standX: seat.x,
-        standY: seat.y + 30
+        standY: seat.y + 32
       });
     });
 
@@ -337,7 +343,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   /**
-   * 3. 遊戲娛樂區 (L型厚實沙發 + 復古 CRT 電視 + PS5)
+   * 3. 遊戲娛樂區 (置於兩側桌群正中間: L型厚實沙發 + 復古 CRT 電視 + PS5)
    */
   buildArcadeLoungeZone() {
     const lounge = GAME_CONFIG.ZONES.ARCADE_LOUNGE;
@@ -355,6 +361,28 @@ export class MainScene extends Phaser.Scene {
     const couch = this.staticColliders.create(lounge.x, lounge.y, 'lounge_couch');
     couch.setDepth(lounge.y);
     couch.refreshBody();
+
+    // 註冊沙發坐姿互動節點 (面向北面電視)
+    this.chairs.push({
+      id: 'arcade_couch_left',
+      x: lounge.x - 24,
+      y: lounge.y + 8,
+      sitX: lounge.x - 24,
+      sitY: lounge.y - 4,
+      dir: 'up',
+      standX: lounge.x - 24,
+      standY: lounge.y + 44
+    });
+    this.chairs.push({
+      id: 'arcade_couch_right',
+      x: lounge.x + 24,
+      y: lounge.y + 8,
+      sitX: lounge.x + 24,
+      sitY: lounge.y - 4,
+      dir: 'up',
+      standX: lounge.x + 24,
+      standY: lounge.y + 44
+    });
 
     // 註冊電視為街機小遊戲觸發器 (Interact for Snake)
     this.interactiveObjects.push({
@@ -385,7 +413,10 @@ export class MainScene extends Phaser.Scene {
       this.chairs.push({
         id: `bar_stool_${idx}`,
         x: pantry.x + offset,
-        y: pantry.y + 26,
+        y: pantry.y + 30,
+        sitX: pantry.x + offset,
+        sitY: pantry.y + 20,
+        dir: 'up',
         standX: pantry.x + offset,
         standY: pantry.y + 54
       });
@@ -536,6 +567,109 @@ export class MainScene extends Phaser.Scene {
   // ==========================================================================
 
   /**
+   * 動態產生或取得頭頂跟隨狀態泡泡紋理 (Dynamic Overhead Status Bubble Texture)
+   * 支援: 預設代碼 ('code', 'coffee', 'rocket', etc.) 或自由輸入文字/Emoji (如: "AFK 5m", "衝刺中 🚀")
+   */
+  getOrCreateStatusBubbleTexture(strOrPreset) {
+    if (!strOrPreset) return 'bubble_badge_code';
+
+    const trimmed = String(strOrPreset).trim();
+    if (!trimmed) return 'bubble_badge_code';
+
+    // 1. 若為標準預設代碼且預加載紋理存在，直接使用
+    const presetKey = `bubble_badge_${trimmed}`;
+    if (['code', 'coffee', 'rocket', 'sleep', 'star', 'leaf', 'fire'].includes(trimmed)) {
+      if (this.textures.exists(presetKey)) {
+        return presetKey;
+      }
+    }
+
+    // 2. 自訂文字/Emoji 生成邏輯 (長度限制 16 字元)
+    const displayText = trimmed.slice(0, 16);
+    // 建立唯一安全 key
+    const hash = Array.from(displayText).map(c => c.charCodeAt(0).toString(16)).join('_');
+    const customKey = `bubble_dyn_${hash}`;
+
+    if (this.textures.exists(customKey)) {
+      return customKey;
+    }
+
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return 'bubble_badge_code';
+
+      const font = 'bold 12px "Quicksand", "Nunito", "PingFang SC", "Microsoft YaHei", sans-serif';
+      ctx.font = font;
+      const textMetrics = ctx.measureText(displayText);
+      const textWidth = Math.ceil(textMetrics.width);
+
+      const padX = 9;
+      const bubbleW = Math.max(34, textWidth + padX * 2);
+      const bubbleH = 24;
+      const tailH = 5;
+      const totalW = bubbleW + 6;
+      const totalH = bubbleH + tailH + 4;
+
+      canvas.width = totalW;
+      canvas.height = totalH;
+
+      ctx.font = font;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+
+      const r = 9;
+      const x = 3;
+      const y = 3;
+      const w = bubbleW;
+      const h = bubbleH;
+
+      // 繪製圓角語音氣泡與底部指向尾巴
+      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeStyle = '#78C0A8';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.arcTo(x + w, y, x + w, y + r, r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+
+      // 底部指向尾巴 (Pointing down towards head)
+      const midX = x + w / 2;
+      ctx.lineTo(midX + 4, y + h);
+      ctx.lineTo(midX, y + h + tailH);
+      ctx.lineTo(midX - 4, y + h);
+
+      ctx.lineTo(x + r, y + h);
+      ctx.arcTo(x, y + h, x, y + h - r, r);
+      ctx.lineTo(x, y + r);
+      ctx.arcTo(x, y, x + r, y, r);
+      ctx.closePath();
+
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = 1;
+      ctx.fill();
+
+      ctx.shadowColor = 'transparent';
+      ctx.stroke();
+
+      // 文字繪製 (深藍灰色 #1E293B)
+      ctx.fillStyle = '#1E293B';
+      ctx.fillText(displayText, x + w / 2, y + h / 2 - 1);
+
+      this.textures.addCanvas(customKey, canvas);
+      return customKey;
+    } catch (e) {
+      console.warn('[Scene] ⚠️ 動態生成氣泡失敗，降級使用預設氣泡:', e);
+      return 'bubble_badge_code';
+    }
+  }
+
+  /**
    * 根據伺服器發放的 init_state 或自訂創角數據生成本地玩家實體 (支援複合外觀裝扮與本地持久化)
    */
   spawnLocalPlayer(initData, directAvatarData = null) {
@@ -578,9 +712,9 @@ export class MainScene extends Phaser.Scene {
 
     const customBubble = (config && config.customBubble) || 'code';
 
-    // 起點座標: 優先取伺服器指派或預設安全起點 (例如 x: 400, y: 300)
-    const startX = typeof serverPlayer.x === 'number' && !isNaN(serverPlayer.x) ? serverPlayer.x : 400;
-    const startY = typeof serverPlayer.y === 'number' && !isNaN(serverPlayer.y) ? serverPlayer.y : 300;
+    // 起點座標: 優先取伺服器指派或預設安全起點 (例如 x: 520, y: 540 中央通道)
+    const startX = typeof serverPlayer.x === 'number' && !isNaN(serverPlayer.x) ? serverPlayer.x : 520;
+    const startY = typeof serverPlayer.y === 'number' && !isNaN(serverPlayer.y) ? serverPlayer.y : 540;
 
     const selfData = {
       id: selfId,
@@ -654,17 +788,17 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.playerContainer.add(this.playerNameText);
 
-    // 2.5 自訂頭頂跟隨狀態泡泡徽章 (扁平層級直接加入 playerContainer，杜絕巢狀 Container WebGL 渲染異常)
-    const bubbleKey = `bubble_badge_${selfData.customBubble}`;
-    if (this.textures.exists(bubbleKey)) {
-      this.playerBubbleSprite = this.add.sprite(0, -50, bubbleKey);
-      this.playerBubbleSprite.setScale(0.85);
+    // 2.5 自訂頭頂跟隨狀態泡泡徽章 (支援預設圖標與自訂自由輸入文字/Emoji)
+    const bubbleKey = this.getOrCreateStatusBubbleTexture(selfData.customBubble || 'code');
+    if (bubbleKey && this.textures.exists(bubbleKey)) {
+      this.playerBubbleSprite = this.add.sprite(0, -52, bubbleKey);
+      this.playerBubbleSprite.setScale(0.95);
       this.playerContainer.add(this.playerBubbleSprite);
 
       // 泡泡懸浮微動緩動動畫 (Sine Floating Tween)
       this.tweens.add({
         targets: this.playerBubbleSprite,
-        y: -54,
+        y: -56,
         duration: 1200,
         yoyo: true,
         repeat: -1,
@@ -765,10 +899,20 @@ export class MainScene extends Phaser.Scene {
 
     // 3. 狀態機互斥規則檢查 (Strict Mutex Machine Execution)
     if (this.mutexMachine.isSitting) {
-      // 坐姿狀態: 速度全歸零，鎖死所有移動
+      // 坐姿狀態: 速度全歸零，鎖死所有移動與精確對齊坐姿座標
+      const chair = this.mutexMachine.activeChair;
+      if (chair) {
+        const sitX = chair.sitX !== undefined ? chair.sitX : chair.x;
+        const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 10);
+        const sitDir = chair.dir || 'up';
+        this.player.setPosition(sitX, sitY);
+        this.playerContainer.setPosition(sitX, sitY);
+        this.playerContainer.setDepth(chair.y + 2);
+        this.player.setDepth(chair.y + 2);
+        this.currentAnimKey = `sit_${sitDir}`;
+        this.updatePlayerVisuals(sitDir, true, false);
+      }
       this.player.body.setVelocity(0, 0);
-      this.currentAnimKey = 'sit_down';
-      this.updatePlayerVisuals('down', true, false);
       this.network.update(time, delta);
       return;
     }
@@ -882,8 +1026,8 @@ export class MainScene extends Phaser.Scene {
 
     // 4. 頭頂跟隨自訂狀態徽章/泡泡 (Overhead Tailing Bubble Badge)
     if (this.playerBubbleSprite && this.playerData.customBubble) {
-      const bubbleKey = `bubble_badge_${this.playerData.customBubble}`;
-      if (this.textures.exists(bubbleKey)) {
+      const bubbleKey = this.getOrCreateStatusBubbleTexture(this.playerData.customBubble);
+      if (bubbleKey && this.textures.exists(bubbleKey)) {
         this.playerBubbleSprite.setTexture(bubbleKey);
       }
     }
@@ -920,9 +1064,21 @@ export class MainScene extends Phaser.Scene {
 
     if (settings.customBubble) {
       this.playerData.customBubble = settings.customBubble;
-      if (this.playerBubbleSprite) {
-        const bubbleKey = `bubble_badge_${settings.customBubble}`;
-        if (this.textures.exists(bubbleKey)) {
+      const bubbleKey = this.getOrCreateStatusBubbleTexture(settings.customBubble);
+      if (bubbleKey && this.textures.exists(bubbleKey)) {
+        if (!this.playerBubbleSprite) {
+          this.playerBubbleSprite = this.add.sprite(0, -52, bubbleKey);
+          this.playerBubbleSprite.setScale(0.95);
+          this.playerContainer.add(this.playerBubbleSprite);
+          this.tweens.add({
+            targets: this.playerBubbleSprite,
+            y: -56,
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+        } else {
           this.playerBubbleSprite.setTexture(bubbleKey);
         }
       }
@@ -1034,16 +1190,26 @@ export class MainScene extends Phaser.Scene {
 
     this.mutexMachine.enterSit(chair, this.player);
 
-    // 平滑瞬移坐入椅子中央
-    this.player.setPosition(chair.x, chair.y);
-    this.playerContainer.setPosition(chair.x, chair.y);
+    const sitX = chair.sitX !== undefined ? chair.sitX : chair.x;
+    const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 10);
+    const sitDir = chair.dir || 'up';
+
+    // 平滑瞬移坐入椅子精確位置
+    this.player.setPosition(sitX, sitY);
+    this.playerContainer.setPosition(sitX, sitY);
+    this.playerContainer.setDepth(chair.y + 2);
+    this.player.setDepth(chair.y + 2);
+
+    this.currentAnimKey = `sit_${sitDir}`;
+    this.updatePlayerVisuals(sitDir, true, false);
 
     // 發送坐下同步封包至伺服器
     this.network.sendChairInteract('sit', {
       chairId: chair.id,
-      x: chair.x,
-      y: chair.y,
-      anim: 'sit_down'
+      x: sitX,
+      y: sitY,
+      dir: sitDir,
+      anim: `sit_${sitDir}`
     });
 
     if (this.ui) {
@@ -1062,13 +1228,18 @@ export class MainScene extends Phaser.Scene {
     if (!this.mutexMachine.isSitting) return;
 
     const chair = this.mutexMachine.activeChair;
-    const standX = chair ? chair.standX : this.player.x;
-    const standY = chair ? chair.standY : (this.player.y + 24);
+    const standX = chair && chair.standX !== undefined ? chair.standX : this.player.x;
+    const standY = chair && chair.standY !== undefined ? chair.standY : (this.player.y + 26);
 
     this.mutexMachine.standUp(this.player);
 
     this.player.setPosition(standX, standY);
     this.playerContainer.setPosition(standX, standY);
+    this.playerContainer.setDepth(standY);
+    this.player.setDepth(standY);
+
+    this.currentAnimKey = 'idle_down';
+    this.updatePlayerVisuals('down', false, false);
 
     this.network.sendChairInteract('stand', {
       standX,
