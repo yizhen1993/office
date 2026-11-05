@@ -35,7 +35,7 @@ export const GAME_CONFIG = {
     MEDIA_SCREEN: {
       x: 520,
       y: 80,
-      controlStickRadius: 360, // 擴大感測半徑，覆蓋兩側辦公桌群中央走廊
+      controlStickRadius: 160, // 僅限大屏幕與正前方沙發近距離範圍內顯示貼上連結控制棒
       audioRadius: 750,        // 擴大音樂音量覆蓋半徑至 750px，完整覆蓋兩側辦公桌群 (Cluster 1 & Cluster 2) 全部 8 張辦公桌區域
       // 正前方恰好 5 個獨立圓潤沙發座位 (Exactly 5 distinct chubby-styled sofa sitting seats/nodes)
       sofaSeats: [

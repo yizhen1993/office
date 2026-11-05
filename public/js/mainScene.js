@@ -466,22 +466,55 @@ export class MainScene extends Phaser.Scene {
     wall2.setDepth(s2.y + 30);
     wall2.refreshBody();
 
-    // 馬桶 1 & 2
+    // 馬桶 1 & 2 (靜態物體，僅水箱保留碰撞盒，便器區域開放供玩家步入與坐下)
     const toilet1 = this.staticColliders.create(s1.x + 40, s1.y, 'prop_toilet');
+    toilet1.setSize(26, 14);
+    toilet1.setOffset(4, 2);
     toilet1.setDepth(s1.y);
     toilet1.refreshBody();
 
     const toilet2 = this.staticColliders.create(s2.x + 30, s2.y, 'prop_toilet');
+    toilet2.setSize(26, 14);
+    toilet2.setOffset(4, 2);
     toilet2.setDepth(s2.y);
     toilet2.refreshBody();
 
-    // 洗手台與梳妝鏡 (Vanity Wash Sinks)
-    const sink1 = this.staticColliders.create(s1.x + 40, s1.y + 70, 'prop_sink');
-    sink1.setDepth(s1.y + 70);
+    // 註冊雙獨立隔間馬桶坐姿交互節點 (支援如廁坐下與站起)
+    this.chairs.push({
+      id: 'restroom_toilet_1',
+      x: s1.x + 40,
+      y: s1.y,
+      radius: 45,
+      sitX: s1.x + 40,
+      sitY: s1.y - 12,
+      dir: 'down',
+      standX: s1.x + 40,
+      standY: s1.y + 36,
+      label: '🚽 按 [E] 如廁坐下 (Press [E] to Sit on Toilet)',
+      standLabel: '🚽 按 [E] 離開馬桶 (Press [E] or Action to Stand Up)'
+    });
+
+    this.chairs.push({
+      id: 'restroom_toilet_2',
+      x: s2.x + 30,
+      y: s2.y,
+      radius: 45,
+      sitX: s2.x + 30,
+      sitY: s2.y - 12,
+      dir: 'down',
+      standX: s2.x + 30,
+      standY: s2.y + 36,
+      label: '🚽 按 [E] 如廁坐下 (Press [E] to Sit on Toilet)',
+      standLabel: '🚽 按 [E] 離開馬桶 (Press [E] or Action to Stand Up)'
+    });
+
+    // 洗手台與梳妝鏡 (Vanity Wash Sinks - 移至隔間內側靠牆處，完全騰出馬桶進出走道)
+    const sink1 = this.staticColliders.create(s1.x + 105, s1.y, 'prop_sink');
+    sink1.setDepth(s1.y);
     sink1.refreshBody();
 
-    const sink2 = this.staticColliders.create(s2.x + 30, s2.y + 70, 'prop_sink');
-    sink2.setDepth(s2.y + 70);
+    const sink2 = this.staticColliders.create(s2.x + 80, s2.y, 'prop_sink');
+    sink2.setDepth(s2.y);
     sink2.refreshBody();
   }
 
@@ -1162,24 +1195,26 @@ export class MainScene extends Phaser.Scene {
       }
     }
 
-    // 2. 檢查椅子交互 (Chairs)
+    // 2. 檢查椅子與馬桶交互 (Chairs & Toilets)
     if (!this.mutexMachine.isSitting) {
       for (const chair of this.chairs) {
         const d = Phaser.Math.Distance.Between(px, py, chair.x, chair.y);
-        if (d <= 35 && d < minDistance) {
+        const radius = chair.radius || 35;
+        if (d <= radius && d < minDistance) {
           minDistance = d;
           closest = {
             type: 'CHAIR',
-            label: '🪑 按 [E] 坐下 (Press [E] or Action to Sit)',
+            label: chair.label || '🪑 按 [E] 坐下 (Press [E] or Action to Sit)',
             data: chair
           };
         }
       }
     } else {
+      const activeChair = this.mutexMachine.activeChair;
       closest = {
         type: 'SITTING',
-        label: '🪑 按 [E] 站起 (Press [E] or STAND to stand up)',
-        data: this.mutexMachine.activeChair
+        label: (activeChair && activeChair.standLabel) ? activeChair.standLabel : '🪑 按 [E] 站起 (Press [E] or STAND to stand up)',
+        data: activeChair
       };
     }
 
@@ -1230,7 +1265,7 @@ export class MainScene extends Phaser.Scene {
     if (this.ui) {
       this.ui.setNearbyInteractive({
         type: 'SITTING',
-        label: '🪑 按 [E] 站起 (Press [E] or STAND to stand up)',
+        label: chair.standLabel || '🪑 按 [E] 站起 (Press [E] or STAND to stand up)',
         data: chair
       });
     }
