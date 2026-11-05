@@ -1,0 +1,15 @@
+services:
+  office-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: office-app
+    restart: unless-stopped
+    ports:
+      - "3008:3000"
+    networks:
+      - kopipeng-net
+
+networks:
+  kopipeng-net:
+    external: true

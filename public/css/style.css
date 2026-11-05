@@ -1,0 +1,264 @@
+/* ==========================================================================
+   2D Multiplayer Virtual Office — Animal Crossing Clay Style Theme
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #B8E1D9;
+  font-family: 'Nunito', 'Quicksand', system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  color: #2D3748;
+}
+
+#game-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 0;
+  touch-action: none;
+}
+
+/* 溫馨動森卡片 (Cozy Clay Card) */
+.ac-card {
+  background: rgba(255, 253, 246, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 3px solid #78C0A8;
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 25px -4px rgba(45, 80, 68, 0.2), inset 0 2px 0 rgba(255, 255, 255, 0.95);
+}
+
+.ac-btn {
+  background: #FDFBF7;
+  border: 2px solid #5AA790;
+  box-shadow: 0 4px 0 #3E7B68, 0 6px 12px rgba(0,0,0,0.1);
+  border-radius: 1rem;
+  transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  font-weight: 800;
+}
+.ac-btn:hover {
+  transform: translateY(-2px);
+  background: #FFFFFF;
+  box-shadow: 0 6px 0 #3E7B68, 0 8px 16px rgba(0,0,0,0.14);
+}
+.ac-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #3E7B68;
+}
+
+/* ==========================================================================
+   神殿風格透明懸浮動作按鈕 (Temple-Style Transparent Floating Overlays)
+   ========================================================================== */
+.temple-floating-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 2.5px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #1E293B;
+  cursor: pointer;
+  touch-action: none;
+  transition: transform 0.1s ease, background 0.15s ease, opacity 0.2s ease;
+  user-select: none;
+}
+
+.temple-floating-btn:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.temple-btn-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  margin-top: -2px;
+}
+
+.btn-active-glow {
+  box-shadow: 0 0 18px #F59E0B, 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  border-color: #F59E0B !important;
+  background: rgba(254, 243, 199, 0.65) !important;
+}
+
+/* ==========================================================================
+   左下虛擬觸控搖桿 (Mobile Virtual Joystick)
+   ========================================================================== */
+#joystick-touch-zone {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 48vw;
+  height: 48vh;
+  z-index: 20;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#virtual-joystick-base {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  transform: translate(-50%, -50%);
+  display: none;
+  pointer-events: none;
+}
+
+#virtual-joystick-thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50px;
+  height: 50px;
+  margin-top: -25px;
+  margin-left: -25px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #52B788, #2D6A4F);
+  border: 2.5px solid #FFFFFF;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   嵌入式復古街機小遊戲視窗 (Snake Arcade Overlay)
+   ========================================================================== */
+.snake-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.snake-arcade-box {
+  width: 380px;
+  background: #FFFDF9;
+  border: 4px solid #F59E0B;
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.snake-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px dashed #E2E8F0;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.snake-close-btn {
+  background: #FEE2E2;
+  color: #DC2626;
+  border: 2px solid #FCA5A5;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.snake-close-btn:hover {
+  background: #FCA5A5;
+  color: #7F1D1D;
+}
+
+.snake-hud {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.5rem 0.5rem 0.5rem;
+}
+
+.snake-canvas-container {
+  position: relative;
+  border: 4px solid #1E293B;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.snake-game-over {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.snake-footer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+}
+
+.snake-action-btn {
+  background: #FEF3C7;
+  border: 2px solid #F59E0B;
+  color: #92400E;
+  font-weight: 800;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-size: 12px;
+}
+.snake-action-btn:hover {
+  background: #FDE68A;
+}
+
+/* ==========================================================================
+   動畫效果 (Keyframes)
+   ========================================================================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1.0); }
+}
+
+@keyframes bounceSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-bounce-slow {
+  animation: bounceSlow 2s infinite ease-in-out;
+}
