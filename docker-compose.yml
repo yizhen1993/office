@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     ports:
       - "3008:3000"
+    volumes:
+      - ./public:/app/public:ro
     networks:
       - kopipeng-net
 

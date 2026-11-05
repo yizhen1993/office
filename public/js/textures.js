@@ -484,38 +484,38 @@ export class TextureGenerator {
     // 點心與飲料圖標 (Item Sprites: Coke, Snack, Pizza)
     {
       // 1. Coke 可樂罐
-      const coke = this.createCanvas(24, 24);
-      coke.ctx.fillStyle = '#E63946';
-      this.roundRect(coke.ctx, 6, 4, 12, 16, 4, true);
-      coke.ctx.fillStyle = '#FFFFFF';
-      coke.ctx.fillRect(8, 10, 8, 3);
-      tm.addCanvas('item_coke', coke.canvas);
+      const { canvas: cokeCanvas, ctx: cokeCtx } = this.createCanvas(24, 24);
+      cokeCtx.fillStyle = '#E63946';
+      this.roundRect(cokeCtx, 6, 4, 12, 16, 4, true);
+      cokeCtx.fillStyle = '#FFFFFF';
+      cokeCtx.fillRect(8, 10, 8, 3);
+      tm.addCanvas('item_coke', cokeCanvas);
 
       // 2. Snack 脆脆薯片包
-      const snack = this.createCanvas(24, 24);
-      snack.ctx.fillStyle = '#FFB703';
-      this.roundRect(snack.ctx, 4, 4, 16, 16, 4, true);
-      snack.ctx.fillStyle = '#FB8500';
-      snack.ctx.fillRect(7, 10, 10, 4);
-      tm.addCanvas('item_snack', snack.canvas);
+      const { canvas: snackCanvas, ctx: snackCtx } = this.createCanvas(24, 24);
+      snackCtx.fillStyle = '#FFB703';
+      this.roundRect(snackCtx, 4, 4, 16, 16, 4, true);
+      snackCtx.fillStyle = '#FB8500';
+      snackCtx.fillRect(7, 10, 10, 4);
+      tm.addCanvas('item_snack', snackCanvas);
 
       // 3. Pizza 香濃披薩切片
-      const pizza = this.createCanvas(24, 24);
-      pizza.ctx.fillStyle = '#F4A261';
-      pizza.ctx.beginPath();
-      pizza.moveTo(12, 3);
-      pizza.lineTo(21, 20);
-      pizza.lineTo(3, 20);
-      pizza.closePath();
-      pizza.fill();
+      const { canvas: pizzaCanvas, ctx: pizzaCtx } = this.createCanvas(24, 24);
+      pizzaCtx.fillStyle = '#F4A261';
+      pizzaCtx.beginPath();
+      pizzaCtx.moveTo(12, 3);
+      pizzaCtx.lineTo(21, 20);
+      pizzaCtx.lineTo(3, 20);
+      pizzaCtx.closePath();
+      pizzaCtx.fill();
       // 義大利臘腸配料
-      pizza.ctx.fillStyle = '#E76F51';
-      pizza.ctx.beginPath();
-      pizza.arc(12, 14, 2.5, 0, Math.PI * 2);
-      pizza.arc(8, 17, 2, 0, Math.PI * 2);
-      pizza.arc(16, 17, 2, 0, Math.PI * 2);
-      pizza.fill();
-      tm.addCanvas('item_pizza', pizza.canvas);
+      pizzaCtx.fillStyle = '#E76F51';
+      pizzaCtx.beginPath();
+      pizzaCtx.arc(12, 14, 2.5, 0, Math.PI * 2);
+      pizzaCtx.arc(8, 17, 2, 0, Math.PI * 2);
+      pizzaCtx.arc(16, 17, 2, 0, Math.PI * 2);
+      pizzaCtx.fill();
+      tm.addCanvas('item_pizza', pizzaCanvas);
     }
   }
 
