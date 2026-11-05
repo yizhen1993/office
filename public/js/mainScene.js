@@ -49,6 +49,7 @@ export class MainScene extends Phaser.Scene {
     // 互動設施清單
     this.chairs = [];
     this.interactiveObjects = [];
+    this.lastSitToggleTime = 0; // 坐姿與互動觸發冷卻防抖時間戳
 
     // 輪盤精靈參照
     this.rouletteWheelSprite = null;
@@ -911,7 +912,7 @@ export class MainScene extends Phaser.Scene {
   update(time, delta) {
     if (!this.player || !this.player.body) return;
 
-    // 0. 檢查鍵盤 E 鍵快捷互動 / 坐下與站起 (Press E to interact, if sit also press E to stand up)
+    // 0. 檢查鍵盤 E 鍵快捷互動 / 坐下與站起 (Press E to interact: strictly sit if standing, stand if sitting)
     if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
       const activeEl = document.activeElement;
       const isInputFocused = activeEl && (
@@ -920,12 +921,7 @@ export class MainScene extends Phaser.Scene {
         activeEl.isContentEditable
       );
       if (!isInputFocused) {
-        if (this.mutexMachine && this.mutexMachine.isSitting) {
-          this.performStandUp();
-          return;
-        } else if (this.ui && this.ui.nearbyInteractive) {
-          this.ui.triggerCurrentInteractive();
-        }
+        this.handleInteractiveAction();
       }
     }
 
@@ -1230,6 +1226,64 @@ export class MainScene extends Phaser.Scene {
   // ==========================================================================
   // 7. 具體交互動作處置 (Interaction Action Handlers)
   // ==========================================================================
+
+  /**
+   * 統一互動動作路由器 (Unified Interactive Action Dispatcher)
+   * 嚴格狀態互斥與冷卻邏輯:
+   * 1. 坐姿狀態下 (isSitting === true) -> 僅允許觸發站起 (Only trigger stand when sitting)
+   * 2. 站立狀態下 (isSitting === false) -> 絕對不可觸發站起！在椅子旁僅允許觸發坐下 (If standing, only trigger sit, never stand)
+   * 3. 具備 300ms 冷卻防抖，杜絕同一幀/單次按鍵連鎖觸發坐下又立馬站起
+   */
+  handleInteractiveAction() {
+    const now = Date.now();
+    if (now - this.lastSitToggleTime < 300) {
+      return;
+    }
+
+    const isSitting = this.mutexMachine && this.mutexMachine.isSitting;
+
+    if (isSitting) {
+      // 坐姿中 -> 唯一合法動作為站起
+      this.lastSitToggleTime = now;
+      this.performStandUp();
+      return;
+    }
+
+    // 站立狀態中 -> 絕對不可執行站起動作！
+    if (!this.ui || !this.ui.nearbyInteractive) {
+      return;
+    }
+
+    const { type, data } = this.ui.nearbyInteractive;
+
+    if (type === 'CHAIR') {
+      // 站立狀態且在椅子旁 -> 唯一合法動作為坐下
+      this.lastSitToggleTime = now;
+      this.performSitDown(data);
+      return;
+    }
+
+    if (type === 'SITTING') {
+      // 狀態防禦: 站立時不允許執行 SITTING 指令
+      return;
+    }
+
+    // 其他一般設施互動 (FRIDGE, TV, ROULETTE, SCREEN)
+    this.lastSitToggleTime = now;
+    if (type === 'FRIDGE') {
+      this.ui.showFridgeMenu();
+    } else if (type === 'TV') {
+      this.launchArcadeSnake();
+    } else if (type === 'ROULETTE') {
+      if (this.network && this.network.sendRouletteSpin) {
+        this.network.sendRouletteSpin();
+      } else if (this.network && this.network.sendSpinRoulette) {
+        this.network.sendSpinRoulette();
+      }
+    } else if (type === 'SCREEN') {
+      this.ui.showMediaModal();
+    }
+  }
 
   /**
    * 坐下動作 (Sit Down Action)

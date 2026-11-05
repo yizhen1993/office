@@ -222,19 +222,9 @@ export class UIManager {
       if (document.activeElement && document.activeElement.isContentEditable) return;
       if (this.mutex.isMiniGaming) return;
 
-      if (e.key === 'e' || e.key === 'E') {
-        if (this.mutex && this.mutex.isSitting) {
-          e.preventDefault();
-          this.scene.performStandUp();
-          return;
-        }
-        if (this.nearbyInteractive) {
-          e.preventDefault();
-          this.triggerCurrentInteractive();
-          return;
-        }
-      } else if (e.key === ' ') {
-        if (this.nearbyInteractive) {
+      if (e.key === 'e' || e.key === 'E' || e.key === ' ') {
+        const isSitting = this.mutex && this.mutex.isSitting;
+        if (isSitting || this.nearbyInteractive) {
           e.preventDefault();
           this.triggerCurrentInteractive();
           return;
@@ -1179,9 +1169,17 @@ export class UIManager {
   }
 
   triggerCurrentInteractive() {
-    // 若當前正處於坐姿，優先執行站起動作
-    if (this.scene && this.scene.mutexMachine && this.scene.mutexMachine.isSitting) {
-      this.scene.performStandUp();
+    // 優先委派至場景的統一互動動作路由器 (Strict Mutex & Cooldown)
+    if (this.scene && this.scene.handleInteractiveAction) {
+      this.scene.handleInteractiveAction();
+      return;
+    }
+
+    const isSitting = this.mutex && this.mutex.isSitting;
+    if (isSitting) {
+      if (this.scene && this.scene.performStandUp) {
+        this.scene.performStandUp();
+      }
       return;
     }
 
@@ -1189,17 +1187,18 @@ export class UIManager {
 
     const { type, data } = this.nearbyInteractive;
 
-    switch (type) {
-      case 'SITTING':
-        // 站起交互
-        this.scene.performStandUp();
-        break;
-
-      case 'CHAIR':
-        // 坐下交互
+    if (type === 'CHAIR') {
+      if (this.scene && this.scene.performSitDown) {
         this.scene.performSitDown(data);
-        break;
+      }
+      return;
+    }
 
+    if (type === 'SITTING') {
+      return;
+    }
+
+    switch (type) {
       case 'FRIDGE':
         // 開啟茶水點心菜單
         this.showFridgeMenu();
@@ -1207,7 +1206,9 @@ export class UIManager {
 
       case 'TV':
         // 開啟復古街機貪吃蛇
-        this.scene.launchArcadeSnake();
+        if (this.scene && this.scene.launchArcadeSnake) {
+          this.scene.launchArcadeSnake();
+        }
         break;
 
       case 'ROULETTE':
