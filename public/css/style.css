@@ -404,27 +404,52 @@ body, html {
    嚴格限定在 @media (max-width: 639px)，保證桌面版 (>=640px) 佈局 100% 不受任何影響
    ========================================================================== */
 @media (max-width: 639px) {
-  /* 1. 移動端聊天懸浮層位置 (位於搖桿上方，預設或折疊時僅保留 1 行) */
+  /* 1. 移動端聊天懸浮層直接位於左下角 (Directly at bottom-left corner) */
   #chat-overlay {
-    bottom: 142px;
+    bottom: 12px;
     left: 12px;
     width: 250px;
     max-width: calc(100vw - 120px);
     gap: 5px;
+    z-index: 35;
     transition: all 0.2s ease-out;
   }
 
-  /* 折疊狀態: 消息框只保留 1 行 (Collapse until 1 line of chat only) */
+  /* 折疊狀態: 消息框只保留 1 行 (Collapse until 1 line of chat only)，直接釘在左下角 */
+  #chat-overlay.is-mobile-collapsed {
+    gap: 0;
+  }
+  #chat-overlay.is-mobile-collapsed #mobile-chat-toggle-bar {
+    display: none !important;
+  }
   #chat-overlay.is-mobile-collapsed .chat-history-window {
-    height: 28px !important;
-    min-height: 28px !important;
-    max-height: 28px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
     overflow: hidden !important;
-    padding: 3px 8px !important;
-    border-radius: 0.75rem !important;
+    padding: 3px 32px 3px 8px !important;
+    border-radius: 0.85rem !important;
     display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-end !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    position: relative !important;
+  }
+
+  /* 單行聊天右側顯著展開指示圖示 [▲] */
+  #chat-overlay.is-mobile-collapsed .chat-history-window::after {
+    content: '▲';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-weight: 900;
+    background: rgba(254, 243, 199, 0.95);
+    padding: 1px 5px;
+    border-radius: 6px;
+    color: #78350F;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    pointer-events: none;
   }
 
   /* 只顯示最新的一條聊天訊息，超出部分以單行省略號截斷 */
@@ -435,20 +460,24 @@ body, html {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    padding: 2px 6px !important;
+    padding: 2px 4px !important;
     margin: 0 !important;
     font-size: 11px !important;
-    line-height: 20px !important;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: none;
+    line-height: 22px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
-  /* 折疊時隱藏快捷表情列，釋放手機遊戲視野 */
+  /* 折疊時隱藏快捷表情列與輸入列，釋放手機遊戲視野，僅呈現極簡 1 行 */
   #chat-overlay.is-mobile-collapsed #chat-quick-emotes {
     display: none !important;
   }
+  #chat-overlay.is-mobile-collapsed #chat-form {
+    display: none !important;
+  }
 
-  /* 移動端展開狀態: 適當高度與滾動 */
+  /* 移動端展開狀態: 向上展開，適當高度與滾動 */
   #chat-overlay:not(.is-mobile-collapsed) .chat-history-window {
     height: 125px;
     max-height: 135px;
@@ -488,12 +517,12 @@ body, html {
     margin-top: 1px;
   }
 
-  /* 3. 移動端左下象限觸控搖桿整齊適配 (不被聊天室遮擋) */
+  /* 3. 移動端左側虛擬搖桿感應區域 (左半部觸控感應，不干擾左下角單行聊天點擊) */
   #joystick-touch-zone {
-    bottom: 12px;
-    left: 12px;
-    width: 120px;
-    height: 120px;
+    bottom: 0;
+    left: 0;
+    width: 50vw;
+    height: 50vh;
   }
   #virtual-joystick-base {
     width: 86px;

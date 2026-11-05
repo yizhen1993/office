@@ -286,6 +286,8 @@ export class UIManager {
     const toggleLabel = document.getElementById('mobile-chat-toggle-label');
     const toggleArrow = document.getElementById('chat-collapse-arrow');
 
+    const chatHistoryLog = document.getElementById('chat-history-log');
+
     const toggleMobileChat = (e) => {
       if (e) {
         e.preventDefault();
@@ -297,7 +299,7 @@ export class UIManager {
         toggleArrow.textContent = isCollapsed ? '▲' : '▼';
       }
       if (toggleLabel) {
-        toggleLabel.textContent = isCollapsed ? '聊天室 (折疊中)' : '聊天室 (已展開)';
+        toggleLabel.textContent = isCollapsed ? '點擊展開完整聊天' : '點擊折疊聊天室';
       }
     };
 
@@ -306,6 +308,14 @@ export class UIManager {
     }
     if (toggleBtn) {
       toggleBtn.onclick = toggleMobileChat;
+    }
+    if (chatHistoryLog) {
+      chatHistoryLog.addEventListener('click', (e) => {
+        // 在移動端且處於折疊狀態時，點擊左下角單行日誌直接展開
+        if (window.innerWidth < 640 && chatOverlay && chatOverlay.classList.contains('is-mobile-collapsed')) {
+          toggleMobileChat(e);
+        }
+      });
     }
   }
 
