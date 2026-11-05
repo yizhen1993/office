@@ -30,22 +30,69 @@
   <div id="game-container"></div>
 
   <!-- ========================================================================= -->
-  <!-- 2. 多媒體投影串流圖層 (#youtube-player-layer) -->
+  <!-- 2. 多媒體投影串流圖層 (#youtube-player-layer) 與懸浮折疊控制 -->
   <!-- ========================================================================= -->
   <div id="youtube-player-layer" class="hidden sm:block">
+    <!-- 頂部控制列 (Control Header Bar with Collapse Button) -->
+    <div id="youtube-header-bar" class="absolute top-0 inset-x-0 h-7 bg-gradient-to-b from-black/80 via-black/50 to-transparent flex items-center justify-between px-2.5 z-20 pointer-events-auto">
+      <div class="flex items-center gap-1.5 text-[11px] font-black text-white drop-shadow">
+        <span class="animate-pulse text-xs">🎵</span>
+        <span class="truncate max-w-[190px]" id="youtube-header-title">EDM Club Banger Mix 2026</span>
+      </div>
+      <button 
+        id="btn-collapse-youtube" 
+        type="button" 
+        class="px-2 py-0.5 rounded-lg bg-black/60 hover:bg-amber-500 hover:text-amber-950 text-white font-extrabold text-[10px] hover:scale-105 active:scale-95 transition flex items-center gap-1 border border-white/30 backdrop-blur-sm cursor-pointer shadow"
+        title="收起為懸浮圖標 (Collapse to Floating Icon)"
+      >
+        <span>🗕</span>
+        <span>收起</span>
+      </button>
+    </div>
+
     <div id="youtube-player-content" class="w-full h-full">
-      <!-- 動態載入 YouTube 嵌入式 iframe -->
+      <!-- 動態載入 YouTube 嵌入式 iframe (Default: EDM Club Banger Mix) -->
       <iframe 
         id="youtube-iframe"
         width="100%" 
         height="100%" 
-        src="https://www.youtube.com/embed/5qap5aO4i9A?autoplay=1&mute=0&loop=1&playlist=5qap5aO4i9A&controls=1" 
+        src="https://www.youtube.com/embed/GWn2Xe-t8DM?autoplay=1&mute=0&loop=1&playlist=GWn2Xe-t8DM&list=RDAMVMGWn2Xe-t8DM&controls=1" 
         frameborder="0" 
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
         allowfullscreen>
       </iframe>
     </div>
   </div>
+
+  <!-- ========================================================================= -->
+  <!-- 2.1 懸浮多媒體收縮圖標按鈕 (#youtube-floating-icon: 點擊即可重新展開播放器) -->
+  <!-- ========================================================================= -->
+  <button 
+    id="youtube-floating-icon" 
+    type="button" 
+    class="hidden fixed top-[70px] right-4 z-40 temple-glass-card !bg-slate-900/90 !text-white px-3.5 py-2 rounded-2xl border-2 border-amber-400 shadow-2xl flex items-center gap-2.5 hover:scale-105 active:scale-95 transition cursor-pointer group animate-fadeIn pointer-events-auto"
+    title="點擊展開 YouTube 懸浮播放器"
+  >
+    <div class="relative flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-br from-red-500 to-amber-500 shadow-md">
+      <span class="text-sm animate-bounce">🎵</span>
+      <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+      </span>
+    </div>
+    
+    <div class="flex flex-col text-left">
+      <span class="text-[11px] font-black tracking-wide text-amber-300 flex items-center gap-1">
+        <span>EDM MUSIC</span>
+        <span class="text-[9px] px-1 py-0.2 bg-red-500 text-white rounded font-bold">LIVE</span>
+      </span>
+      <span class="text-[10px] text-slate-300 font-bold truncate max-w-[110px]">點擊展開播放器 📺</span>
+    </div>
+
+    <div class="w-5 h-5 rounded-lg bg-white/20 flex items-center justify-center text-xs text-white group-hover:bg-amber-400 group-hover:text-amber-950 transition">
+      ⤢
+    </div>
+  </button>
 
   <!-- ========================================================================= -->
   <!-- 2.5 YouTube 近距離交互控制棒 (#youtube-control-stick: 僅限 120-150px 範圍內顯示) -->
@@ -285,7 +332,7 @@
           <input 
             id="media-url-input" 
             type="url" 
-            placeholder="例如: https://www.youtube.com/watch?v=5qap5aO4i9A"
+            placeholder="例如: https://music.youtube.com/watch?v=GWn2Xe-t8DM"
             required
             class="w-full px-3 py-2 text-xs font-bold rounded-xl border-2 border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
           />

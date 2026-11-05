@@ -9,6 +9,7 @@ services:
       - "3008:3000"
     volumes:
       - ./public:/app/public:ro
+      - ./server.js:/app/server.js:ro
     networks:
       - kopipeng-net
 

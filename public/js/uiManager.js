@@ -304,9 +304,11 @@ export class UIManager {
   }
 
   // ==========================================================================
-  // 5. 多媒體 YouTube 投影螢幕控制器 (Proximity Video Player)
+  // 5. 多媒體 YouTube 投影螢幕控制器 (Proximity Video Player & Floating Collapse)
   // ==========================================================================
   initMediaControls() {
+    this.isYoutubeCollapsed = false;
+
     const mediaForm = document.getElementById('media-submit-form');
     const mediaInput = document.getElementById('media-url-input');
     const mediaClose = document.getElementById('media-close-btn');
@@ -325,6 +327,55 @@ export class UIManager {
 
     if (mediaClose) {
       mediaClose.onclick = () => this.hideMediaModal();
+    }
+
+    // 懸浮播放器收起按鈕 (Collapse to floating icon)
+    const btnCollapse = document.getElementById('btn-collapse-youtube');
+    if (btnCollapse) {
+      btnCollapse.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.collapseYouTubePlayer();
+      };
+    }
+
+    // 懸浮圖標點擊展開 (Expand floating player)
+    const floatingIcon = document.getElementById('youtube-floating-icon');
+    if (floatingIcon) {
+      floatingIcon.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.expandYouTubePlayer();
+      };
+    }
+  }
+
+  /**
+   * 收起懸浮 YouTube 播放器至精緻動態音樂圖標
+   */
+  collapseYouTubePlayer() {
+    this.isYoutubeCollapsed = true;
+    if (this.youtubeContainer) {
+      this.youtubeContainer.classList.add('is-collapsed');
+    }
+    const floatingIcon = document.getElementById('youtube-floating-icon');
+    if (floatingIcon) {
+      floatingIcon.classList.remove('hidden');
+    }
+  }
+
+  /**
+   * 將懸浮圖標重新展開為完整 YouTube 播放器
+   */
+  expandYouTubePlayer() {
+    this.isYoutubeCollapsed = false;
+    if (this.youtubeContainer) {
+      this.youtubeContainer.classList.remove('is-collapsed');
+      this.youtubeContainer.style.opacity = '1.0';
+    }
+    const floatingIcon = document.getElementById('youtube-floating-icon');
+    if (floatingIcon) {
+      floatingIcon.classList.add('hidden');
     }
   }
 
@@ -784,24 +835,26 @@ export class UIManager {
     const iframe = this.youtubeContainer.querySelector('iframe');
     if (!iframe) return;
 
-    if (distance > maxRadius) {
-      // 超出聽覺半徑，靜音或降低透明度
-      this.youtubeContainer.style.opacity = '0.15';
-    } else {
-      // 線性漸強 (越接近音量越飽滿)
-      const volumeRatio = Math.max(0.1, 1.0 - (distance / maxRadius));
-      this.youtubeContainer.style.opacity = '1.0';
-
-      // 透過 postMessage 嘗試向 YouTube iframe 傳送音量調節
-      try {
-        const volumePercent = Math.round(volumeRatio * 100);
-        iframe.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'setVolume', args: [volumePercent] }),
-          '*'
-        );
-      } catch (err) {
-        // 跨域 iframe 安全策略防護
+    if (!this.isYoutubeCollapsed) {
+      if (distance > maxRadius) {
+        // 超出聽覺半徑，靜音或降低透明度
+        this.youtubeContainer.style.opacity = '0.15';
+      } else {
+        // 線性漸強 (越接近音量越飽滿)
+        this.youtubeContainer.style.opacity = '1.0';
       }
+    }
+
+    const volumeRatio = distance > maxRadius ? 0.05 : Math.max(0.1, 1.0 - (distance / maxRadius));
+    // 透過 postMessage 嘗試向 YouTube iframe 傳送音量調節
+    try {
+      const volumePercent = Math.round(volumeRatio * 100);
+      iframe.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: 'setVolume', args: [volumePercent] }),
+        '*'
+      );
+    } catch (err) {
+      // 跨域 iframe 安全策略防護
     }
   }
 

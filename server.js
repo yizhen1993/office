@@ -58,9 +58,9 @@ const rooms = {
       lastWinner: null
     },
     media: {
-      videoUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A',
-      embedUrl: 'https://www.youtube.com/embed/5qap5aO4i9A?autoplay=1&mute=0&loop=1&playlist=5qap5aO4i9A&controls=1',
-      title: 'Cozy Lofi Hip Hop Beats to Relax/Work',
+      videoUrl: 'https://music.youtube.com/watch?v=GWn2Xe-t8DM&list=RDAMVMGWn2Xe-t8DM',
+      embedUrl: 'https://www.youtube.com/embed/GWn2Xe-t8DM?autoplay=1&mute=0&loop=1&playlist=GWn2Xe-t8DM&list=RDAMVMGWn2Xe-t8DM&controls=1',
+      title: '💥⚡ EDM Remix & Popular Songs 2026 | Club Banger Mix',
       setBy: 'System'
     },
     clubMode: false // 🪩 TOGGLE CLUB 夜店模式全房同步
@@ -119,9 +119,11 @@ function sanitizeYouTubeEmbedUrl(inputUrl) {
   }
 
   if (videoId) {
+    const listMatch = inputUrl.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    const listParam = listMatch ? `&list=${listMatch[1]}` : '';
     return {
       videoId,
-      embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&loop=1&playlist=${videoId}&controls=1`
+      embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&loop=1&playlist=${videoId}${listParam}&controls=1`
     };
   }
   return null;

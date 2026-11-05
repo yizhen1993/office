@@ -65,9 +65,25 @@ body, html {
   border: 3px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.4);
   background: #000000;
-  z-index: 15;
+  z-index: 25;
   pointer-events: auto;
-  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+/* 收縮摺疊狀態: 縮小為透明隱藏，但保留 DOM 內的 iframe 讓音樂持續無縫播送不中斷 */
+#youtube-player-layer.is-collapsed {
+  transform: scale(0.01) translate(400px, -200px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 懸浮播放器頂部控制列 */
+#youtube-header-bar {
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+#youtube-player-layer:hover #youtube-header-bar {
+  opacity: 1;
 }
 
 /* #chat-overlay: 左下象限懸浮滾動聊天系統 */

@@ -1174,6 +1174,11 @@ export class MainScene extends Phaser.Scene {
       banner.textContent = `▶ Now Playing: ${mediaData.title || 'Multiplayer Video'}`;
     }
 
+    const headerTitle = document.getElementById('youtube-header-title');
+    if (headerTitle) {
+      headerTitle.textContent = mediaData.title || 'EDM Club Mix 2026';
+    }
+
     const content = document.getElementById('youtube-player-content');
     if (content && mediaData.embedUrl) {
       content.innerHTML = `
