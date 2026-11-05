@@ -37,11 +37,12 @@ export class UIManager {
     this.btnStand = document.getElementById('btn-stand');
     this.btnEat = document.getElementById('btn-eat');
     this.btnAction = document.getElementById('btn-action');
+    this.btnClub = document.getElementById('btn-club');
     this.chatInput = document.getElementById('chat-input');
     this.chatForm = document.getElementById('chat-form');
     this.fridgeMenu = document.getElementById('fridge-menu-modal');
     this.mediaModal = document.getElementById('media-modal');
-    this.youtubeContainer = document.getElementById('youtube-player-container');
+    this.youtubeContainer = document.getElementById('youtube-player-layer');
 
     // 當前接近的可互動設施
     this.nearbyInteractive = null; // { type: 'FRIDGE' | 'TV' | 'ROULETTE' | 'SCREEN' | 'CHAIR', target: any }
@@ -193,6 +194,16 @@ export class UIManager {
       this.btnAction.onclick = (e) => {
         e.preventDefault();
         this.triggerCurrentInteractive();
+      };
+    }
+
+    // 按鈕 5: 🪩 夜店派對模式鍵 (TOGGLE CLUB)
+    if (this.btnClub) {
+      this.btnClub.onclick = (e) => {
+        e.preventDefault();
+        if (this.network && this.network.sendToggleClubMode) {
+          this.network.sendToggleClubMode();
+        }
       };
     }
 
@@ -405,7 +416,11 @@ export class UIManager {
 
       case 'ROULETTE':
         // 轉動賽博輪盤
-        this.network.sendSpinRoulette();
+        if (this.network && this.network.sendRouletteSpin) {
+          this.network.sendRouletteSpin();
+        } else if (this.network && this.network.sendSpinRoulette) {
+          this.network.sendSpinRoulette();
+        }
         break;
 
       case 'SCREEN':

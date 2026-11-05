@@ -15,7 +15,7 @@
 import { GAME_CONFIG } from './config.js';
 import { TextureGenerator } from './textures.js';
 import { StateMutexMachine } from './stateMachine.js';
-import { NetworkManager } from './network.js';
+import { NetworkManager, initSocketConnections } from './network.js';
 import { UIManager } from './uiManager.js';
 import { SnakeMiniGame } from './snakeGame.js';
 
@@ -71,7 +71,7 @@ export class MainScene extends Phaser.Scene {
 
     // 1. 初始化狀態互斥機與網路管理器
     this.mutexMachine = new StateMutexMachine();
-    this.network = new NetworkManager(this);
+    this.network = initSocketConnections(this);
 
     // 2. 設置物理世界邊界 (World Bounds)
     this.physics.world.setBounds(0, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
@@ -791,12 +791,9 @@ export class MainScene extends Phaser.Scene {
   handleServerRouletteSpin(data) {
     if (!this.rouletteWheelSprite) return;
 
-    const sectorCount = 8;
-    const sliceAngle = 360 / sectorCount; // 45 度
-
-    // 計算落點目標角度 (需順時針多轉 5 圈後停在目標扇區)
-    const baseRounds = 360 * 5;
-    // 扇區 0 在正上方 (-90deg)，其餘依序排列
+    // 0~36 號輪盤開獎角度計算
+    const sliceAngle = 360 / 37;
+    const baseRounds = 360 * 5; // 順時針高速旋轉 5 圈
     const targetAngle = baseRounds + (360 - (data.winningIndex * sliceAngle));
 
     this.isRouletteSpinning = true;
@@ -824,8 +821,14 @@ export class MainScene extends Phaser.Scene {
     const desc = document.getElementById('roulette-prize-desc');
 
     if (banner && title && desc) {
-      title.textContent = `🎉 恭喜 ${data.spunByName} 轉出大獎！`;
-      desc.textContent = data.sectorLabel;
+      const num = data.winningIndex !== undefined ? data.winningIndex : 0;
+      const isGreen = num === 0;
+      const isRed = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36].includes(num);
+      const colorLabel = isGreen ? '🟢 [零號守護 Green 0]' : (isRed ? '🔴 [幸運赤紅 Red]' : '⚫ [曜石暗黑 Black]');
+      const label = `中獎號碼 #${num} ${colorLabel} (+${num * 10 + 50} Bells)`;
+
+      title.textContent = `🎉 恭喜同事 ${data.spunByName || 'Colleague'} 轉出大獎！`;
+      desc.textContent = label;
       banner.classList.remove('hidden');
 
       setTimeout(() => {
@@ -844,10 +847,11 @@ export class MainScene extends Phaser.Scene {
       banner.textContent = `▶ Now Playing: ${mediaData.title || 'Multiplayer Video'}`;
     }
 
-    const container = document.getElementById('youtube-player-container');
-    if (container && mediaData.embedUrl) {
-      container.innerHTML = `
+    const content = document.getElementById('youtube-player-content');
+    if (content && mediaData.embedUrl) {
+      content.innerHTML = `
         <iframe 
+          id="youtube-iframe"
           width="100%" 
           height="100%" 
           src="${mediaData.embedUrl}" 

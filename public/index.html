@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>KopiPeng 2D Multiplayer Virtual Office — Animal Crossing Cozy Edition</title>
+  <title>KopiPeng 2D Multiplayer Virtual Office — Stage 2 Edition</title>
 
-  <!-- Tailwind CSS CDN for Modern Responsive Layout -->
+  <!-- Tailwind CSS CDN for Modern Grid & Layout Utilities -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Google Fonts: Quicksand & Nunito for authentic Animal Crossing typography -->
@@ -19,53 +19,76 @@
   <!-- Socket.io Client -->
   <script src="/socket.io/socket.io.js"></script>
 
-  <!-- Custom Theme CSS -->
+  <!-- Temple-Styled Aesthetic CSS -->
   <link rel="stylesheet" href="./css/style.css">
 </head>
 <body class="relative w-screen h-screen overflow-hidden text-slate-800">
 
   <!-- ========================================================================= -->
-  <!-- 1. Phaser 3 遊戲畫布容器 (Game Canvas Container) -->
+  <!-- 1. PHASER 3 遊戲主畫布容器 (#game-container) -->
   <!-- ========================================================================= -->
   <div id="game-container"></div>
 
   <!-- ========================================================================= -->
-  <!-- 2. 頂部狀態列 (Top Navigation & Status Bar) -->
+  <!-- 2. 多媒體投影串流圖層 (#youtube-player-layer) -->
+  <!-- ========================================================================= -->
+  <div id="youtube-player-layer" class="hidden sm:block">
+    <div id="youtube-player-content" class="w-full h-full">
+      <!-- 動態載入 YouTube 嵌入式 iframe -->
+      <iframe 
+        id="youtube-iframe"
+        width="100%" 
+        height="100%" 
+        src="https://www.youtube.com/embed/5qap5aO4i9A?autoplay=1&mute=0&loop=1&playlist=5qap5aO4i9A&controls=1" 
+        frameborder="0" 
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+        allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 3. 🪩 夜店派對模式全域濾鏡覆蓋層 (#club-disco-overlay) -->
+  <!-- ========================================================================= -->
+  <div id="club-disco-overlay"></div>
+
+  <!-- ========================================================================= -->
+  <!-- 4. 頂部狀態列 (Top Navigation & Status Bar) -->
   <!-- ========================================================================= -->
   <header class="absolute top-3 left-3 right-3 flex items-center justify-between z-30 pointer-events-none">
     <!-- 左側: 辦公室名稱與在線人數 -->
-    <div class="ac-card px-4 py-2 pointer-events-auto flex items-center gap-3">
-      <div class="w-10 h-10 rounded-2xl bg-amber-100 border-2 border-emerald-400 flex items-center justify-center text-2xl shadow-inner animate-bounce-slow">
+    <div class="temple-glass-card px-4 py-2 pointer-events-auto flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-amber-100 border-2 border-emerald-400 flex items-center justify-center text-2xl shadow-inner">
         <span>🍃</span>
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <span class="text-sm font-black tracking-wide text-emerald-900">KopiPeng Virtual Office</span>
+          <span class="text-sm font-black tracking-wide text-emerald-950">KopiPeng Virtual Office</span>
           <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold border border-emerald-300 flex items-center gap-1">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span id="online-count">1</span> 在線
           </span>
         </div>
-        <div class="flex items-center gap-2 text-xs text-slate-600 mt-0.5 font-bold">
-          <span id="hud-player-name" class="text-amber-700">★ 連線中...</span>
-          <span class="text-slate-300">|</span>
+        <div class="flex items-center gap-2 text-xs text-slate-700 mt-0.5 font-bold">
+          <span id="hud-player-name" class="text-amber-800">★ 連線中...</span>
+          <span class="text-slate-400">|</span>
           <span class="text-slate-500 text-[11px]">Shift: 奔跑 / E: 互動</span>
         </div>
       </div>
     </div>
 
-    <!-- 中央: 當前多媒體影音廣播狀態條 (YouTube Proximity Banner) -->
-    <div class="hidden md:flex ac-card px-4 py-1.5 pointer-events-auto items-center gap-2 max-w-md">
+    <!-- 中央: 當前影音播放橫條 -->
+    <div class="hidden lg:flex temple-glass-card px-4 py-1.5 pointer-events-auto items-center gap-2 max-w-sm">
       <span class="text-red-500 animate-pulse text-sm">📺</span>
-      <span id="media-now-playing" class="text-xs font-bold text-slate-700 truncate">
+      <span id="media-now-playing" class="text-xs font-extrabold text-slate-700 truncate">
         ▶ Now Playing: Cozy Lofi Hip Hop Beats
       </span>
     </div>
 
-    <!-- 右側: 快捷指南與除錯按鈕 -->
-    <div class="ac-card px-3 py-2 pointer-events-auto flex items-center gap-2">
+    <!-- 右側: 操作指南與物理除錯按鈕 -->
+    <div class="temple-glass-card px-3 py-2 pointer-events-auto flex items-center gap-2">
       <button id="btn-toggle-guide" class="text-xs font-black px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition">
-        📖 操作指南
+        📖 指南
       </button>
       <button id="btn-debug-toggle" class="text-xs font-black px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition" title="Press F2 to Toggle Physics Collider">
         🛠️ F2
@@ -74,29 +97,102 @@
   </header>
 
   <!-- ========================================================================= -->
-  <!-- 3. 近距離可互動設施懸浮提示膠囊 (Interactive Proximity Prompt Pill) -->
+  <!-- 5. 滾動歷史聊天系統 (#chat-overlay) -->
+  <!-- ========================================================================= -->
+  <div id="chat-overlay">
+    <!-- 歷史消息日誌視窗 (Scrolling message history log window) -->
+    <div id="chat-history-log" class="temple-glass-card chat-history-window">
+      <div class="chat-bubble-log text-slate-500">
+        🍃 歡迎來到 <b>KopiPeng Virtual Office</b>！向同事打個招呼吧！
+      </div>
+    </div>
+
+    <!-- 快捷表情小按鈕 -->
+    <div class="flex items-center gap-1 temple-glass-card px-2 py-1 w-fit">
+      <button class="quick-chat-btn text-sm hover:scale-125 transition p-1" data-msg="嗨大家！👋">👋</button>
+      <button class="quick-chat-btn text-sm hover:scale-125 transition p-1" data-msg="喝杯南洋 Kopi 休息一下 ☕">☕</button>
+      <button class="quick-chat-btn text-sm hover:scale-125 transition p-1" data-msg="太讚了！慶祝一下 🎉">🎉</button>
+      <button class="quick-chat-btn text-sm hover:scale-125 transition p-1" data-msg="先小睡10分鐘充電 💤">💤</button>
+      <button class="quick-chat-btn text-sm hover:scale-125 transition p-1" data-msg="衝刺衝刺！⚡">⚡</button>
+    </div>
+
+    <!-- 主聊天輸入列 -->
+    <form id="chat-form" class="flex items-center gap-2">
+      <input 
+        id="chat-input" 
+        type="text" 
+        maxlength="80"
+        placeholder="向同事打個招呼... [Enter 發送]" 
+        class="flex-1 temple-glass-card px-3 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-md"
+      />
+      <button type="submit" class="temple-btn !w-10 !h-10 !rounded-xl !bg-amber-100/80 shadow-md flex items-center justify-center">
+        <span class="text-sm">💬</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 6. 右下象限神殿風格懸浮動作控制台 (#mobile-action-hud) -->
+  <!-- ========================================================================= -->
+  <div id="mobile-action-hud">
+    <!-- 按鈕 5: 🪩 切換夜店模式 (TOGGLE CLUB) -->
+    <button id="btn-club" class="temple-btn" title="Toggle Club Disco Party Mode">
+      <span class="temple-btn-icon">🪩</span>
+      <span class="temple-btn-text">CLUB</span>
+    </button>
+
+    <!-- 按鈕 4: ⚡ 萬能互動鍵 (ACTION / INTERACT) -->
+    <button id="btn-action" class="temple-btn hidden btn-gold" title="Interact">
+      <span class="temple-btn-icon">⚡</span>
+      <span class="temple-btn-text">ACTION</span>
+    </button>
+
+    <!-- 按鈕 3: 🍽️ 享用食物鍵 (EAT / CONSUME) -->
+    <button id="btn-eat" class="temple-btn hidden btn-crimson" title="Consume Held Snack">
+      <span class="temple-btn-icon">🍽️</span>
+      <span class="temple-btn-text">EAT</span>
+    </button>
+
+    <!-- 按鈕 2: 🧍 站起鍵 (STAND UP) - 僅在 isSitting 時條件渲染 -->
+    <button id="btn-stand" class="temple-btn hidden" title="Stand Up">
+      <span class="temple-btn-icon">🧍</span>
+      <span class="temple-btn-text">STAND</span>
+    </button>
+
+    <!-- 按鈕 1: 🏃 奔跑鍵 (RUN) - 長按 2.5 倍極速衝刺 -->
+    <button id="btn-run" class="temple-btn" title="Hold to Sprint (2.5x Speed)">
+      <span class="temple-btn-icon">🏃</span>
+      <span class="temple-btn-text">RUN</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 7. 左下象限虛擬觸控搖桿感應區 (#joystick-touch-zone) -->
+  <!-- ========================================================================= -->
+  <div id="joystick-touch-zone">
+    <div id="virtual-joystick-base">
+      <div id="virtual-joystick-thumb"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 8. 近距離設施提示膠囊 & 輪盤中獎橫幅 -->
   <!-- ========================================================================= -->
   <div id="interactive-prompt" class="hidden absolute top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-    <div class="ac-card px-5 py-2.5 flex items-center gap-2 shadow-2xl animate-bounce">
+    <div class="temple-glass-card px-5 py-2.5 flex items-center gap-2 shadow-2xl animate-bounce">
       <span class="text-xl">✨</span>
-      <span id="interactive-prompt-text" class="text-xs font-black text-emerald-900 tracking-wide">
+      <span id="interactive-prompt-text" class="text-xs font-black text-emerald-950 tracking-wide">
         Press E or Action to Interact
       </span>
     </div>
   </div>
 
-  <!-- ========================================================================= -->
-  <!-- 4. 浮動廣播通知膠囊 (System Notice Pill) -->
-  <!-- ========================================================================= -->
   <div id="system-notice" class="hidden absolute top-32 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-    <div class="bg-amber-500/90 backdrop-blur-md text-white font-extrabold text-xs px-5 py-2 rounded-full shadow-lg border-2 border-white">
+    <div class="bg-amber-600/90 backdrop-blur-md text-white font-extrabold text-xs px-5 py-2 rounded-full shadow-lg border-2 border-white">
       系統通知訊息
     </div>
   </div>
 
-  <!-- ========================================================================= -->
-  <!-- 5. 賽博輪盤中獎公告橫幅 (Roulette Prize Celebration Banner) -->
-  <!-- ========================================================================= -->
   <div id="roulette-prize-banner" class="hidden absolute top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none w-11/12 max-w-md">
     <div class="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 p-1 rounded-3xl shadow-2xl border-4 border-amber-600 animate-pulse">
       <div class="bg-amber-50 px-6 py-4 rounded-[1.3rem] text-center">
@@ -107,112 +203,34 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 6. 多媒體投影區 YouTube 影片播放容器 (Proximity Video Container) -->
+  <!-- 9. 互動彈窗: 冰箱、YouTube 網址輸入、遊玩指南 -->
   <!-- ========================================================================= -->
-  <div id="youtube-player-container" class="absolute top-20 right-4 w-72 h-44 rounded-2xl overflow-hidden border-4 border-slate-700 shadow-2xl z-20 transition-opacity duration-300 bg-black">
-    <!-- 動態注入 iframe -->
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 7. 左下象限虛擬觸控搖桿感應區 (Mobile Virtual Joystick Zone) -->
-  <!-- ========================================================================= -->
-  <div id="joystick-touch-zone">
-    <div id="virtual-joystick-base">
-      <div id="virtual-joystick-thumb"></div>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 8. 右下象限神殿風格透明懸浮動作按鈕 (Temple Floating Action Overlays) -->
-  <!-- ========================================================================= -->
-  <div class="absolute bottom-20 right-4 flex flex-col items-center gap-3 z-30 pointer-events-auto">
-    <!-- 按鈕 4: ⚡ 萬能互動鍵 (INTERACT / ACTION) -->
-    <button id="btn-action" class="temple-floating-btn hidden bg-amber-400/30 border-amber-300/80" title="Interact">
-      <span class="text-2xl">⚡</span>
-      <span class="temple-btn-label">ACTION</span>
-    </button>
-
-    <!-- 按鈕 3: 🍽️ 享用食物鍵 (CONSUME) -->
-    <button id="btn-eat" class="temple-floating-btn hidden bg-emerald-400/30 border-emerald-300/80" title="Consume Held Snack">
-      <span class="text-2xl">🍽️</span>
-      <span class="temple-btn-label">EAT</span>
-    </button>
-
-    <!-- 按鈕 2: 🧍 站起鍵 (STAND UP) - 僅在 isSitting 時條件顯示 -->
-    <button id="btn-stand" class="temple-floating-btn hidden bg-sky-400/30 border-sky-300/80" title="Stand Up">
-      <span class="text-2xl">🧍</span>
-      <span class="temple-btn-label">STAND</span>
-    </button>
-
-    <!-- 按鈕 1: 🏃 奔跑鍵 (RUN) - 長按 2.5倍急速衝刺 -->
-    <button id="btn-run" class="temple-floating-btn" title="Hold to Sprint (2.5x Speed)">
-      <span class="text-2xl">🏃</span>
-      <span class="temple-btn-label">RUN</span>
-    </button>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 9. 底部快捷聊天列與對話輸入 (Bottom Floating Chat Submission Bar) -->
-  <!-- ========================================================================= -->
-  <div class="absolute bottom-3 left-3 right-3 md:left-24 md:right-24 flex items-center gap-2 z-30 pointer-events-auto">
-    <!-- 快捷表情小按鈕 -->
-    <div class="hidden sm:flex items-center gap-1 ac-card px-2 py-1">
-      <button class="quick-chat-btn text-base hover:scale-125 transition p-1" data-msg="嗨大家！👋">👋</button>
-      <button class="quick-chat-btn text-base hover:scale-125 transition p-1" data-msg="喝杯南洋 Kopi 休息一下 ☕">☕</button>
-      <button class="quick-chat-btn text-base hover:scale-125 transition p-1" data-msg="太棒了！慶祝一下 🎉">🎉</button>
-      <button class="quick-chat-btn text-base hover:scale-125 transition p-1" data-msg="先小睡10分鐘充電 💤">💤</button>
-      <button class="quick-chat-btn text-base hover:scale-125 transition p-1" data-msg="衝刺衝刺！⚡">⚡</button>
-    </div>
-
-    <!-- 主聊天輸入框表單 -->
-    <form id="chat-form" class="flex-1 flex items-center gap-2">
-      <div class="relative flex-1">
-        <input 
-          id="chat-input" 
-          type="text" 
-          maxlength="80"
-          placeholder="向同事打個招呼... (按 Enter 發送頭頂氣泡)" 
-          class="w-full ac-card px-4 py-2.5 text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-lg"
-        />
-      </div>
-      <button type="submit" class="ac-btn px-4 py-2 text-xs text-emerald-900 flex items-center gap-1 shadow-md">
-        <span>💬</span>
-        <span class="hidden sm:inline">發送</span>
-      </button>
-    </form>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 10. 茶水間冰箱互動彈窗 (Fridge Dropdown Modal) -->
-  <!-- ========================================================================= -->
+  <!-- 冰箱彈窗 -->
   <div id="fridge-menu-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="ac-card w-full max-w-sm p-6 relative animate-fadeIn">
+    <div class="temple-glass-card !bg-white/95 w-full max-w-sm p-6 relative animate-fadeIn shadow-2xl">
       <button id="fridge-close-btn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-black text-xl">✕</button>
       
       <div class="flex items-center gap-3 mb-4">
         <div class="text-3xl">🥤</div>
         <div>
-          <h3 class="font-extrabold text-base text-emerald-900">茶水間智能雙門冰箱</h3>
+          <h3 class="font-extrabold text-base text-emerald-950">茶水間智能雙門冰箱</h3>
           <p class="text-[11px] text-slate-500">選擇你想拿取的冰涼飲料或點心：</p>
         </div>
       </div>
 
       <div class="grid grid-cols-3 gap-3 my-4">
-        <!-- Coke -->
         <button class="fridge-item-option flex flex-col items-center p-3 rounded-2xl bg-rose-50 hover:bg-rose-100 border-2 border-rose-300 transition group" data-item="Coke">
           <span class="text-3xl group-hover:scale-110 transition">🥤</span>
           <span class="font-black text-xs text-rose-800 mt-2">可樂 Coke</span>
           <span class="text-[10px] text-rose-500 font-bold">拿取手持</span>
         </button>
 
-        <!-- Snack -->
         <button class="fridge-item-option flex flex-col items-center p-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 transition group" data-item="Snack">
           <span class="text-3xl group-hover:scale-110 transition">🍟</span>
           <span class="font-black text-xs text-amber-800 mt-2">脆片 Snack</span>
           <span class="text-[10px] text-amber-500 font-bold">拿取手持</span>
         </button>
 
-        <!-- Pizza -->
         <button class="fridge-item-option flex flex-col items-center p-3 rounded-2xl bg-orange-50 hover:bg-orange-100 border-2 border-orange-300 transition group" data-item="Pizza">
           <span class="text-3xl group-hover:scale-110 transition">🍕</span>
           <span class="font-black text-xs text-orange-800 mt-2">披薩 Pizza</span>
@@ -226,17 +244,15 @@
     </div>
   </div>
 
-  <!-- ========================================================================= -->
-  <!-- 11. 多媒體 YouTube 網址分享彈窗 (YouTube Share Modal) -->
-  <!-- ========================================================================= -->
+  <!-- YouTube 網址分享彈窗 -->
   <div id="media-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="ac-card w-full max-w-md p-6 relative animate-fadeIn">
+    <div class="temple-glass-card !bg-white/95 w-full max-w-md p-6 relative animate-fadeIn shadow-2xl">
       <button id="media-close-btn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-black text-xl">✕</button>
       
       <div class="flex items-center gap-3 mb-4">
         <div class="text-3xl">📺</div>
         <div>
-          <h3 class="font-extrabold text-base text-emerald-900">多媒體投影屏同步播送</h3>
+          <h3 class="font-extrabold text-base text-emerald-950">多媒體投影屏同步播送</h3>
           <p class="text-[11px] text-slate-500">輸入 YouTube 連結，全體在線同事將無縫同播！</p>
         </div>
       </div>
@@ -254,7 +270,7 @@
         </div>
 
         <div class="flex justify-end gap-2">
-          <button type="submit" class="ac-btn px-5 py-2 text-xs text-emerald-900">
+          <button type="submit" class="temple-glass-card !bg-amber-400/80 px-5 py-2 text-xs font-black text-amber-950">
             ▶ 立即投屏廣播
           </button>
         </div>
@@ -262,33 +278,35 @@
     </div>
   </div>
 
-  <!-- ========================================================================= -->
-  <!-- 12. 操作指南彈窗 (Help Guide Modal) -->
-  <!-- ========================================================================= -->
+  <!-- 操作指南彈窗 -->
   <div id="guide-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="ac-card w-full max-w-lg p-6 relative animate-fadeIn">
+    <div class="temple-glass-card !bg-white/95 w-full max-w-lg p-6 relative animate-fadeIn shadow-2xl">
       <button id="guide-close-btn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-black text-xl">✕</button>
       
       <div class="flex items-center gap-3 mb-4 border-b border-emerald-200 pb-3">
         <div class="text-3xl">📖</div>
         <div>
-          <h3 class="font-extrabold text-base text-emerald-900">虛擬辦公空間遊玩指南</h3>
-          <p class="text-[11px] text-slate-500">Animal Crossing 療癒動森風格 2D 多人在線虛擬辦公室</p>
+          <h3 class="font-extrabold text-base text-emerald-950">虛擬辦公空間遊玩指南 (Stage 2)</h3>
+          <p class="text-[11px] text-slate-500">Animal Crossing 療癒動森風格 + 神殿美學 2D 多人在線虛擬辦公室</p>
         </div>
       </div>
 
       <div class="space-y-3 text-xs text-slate-700">
         <div class="flex items-start gap-2">
           <span class="text-base">🕹️</span>
-          <div><b>移動控制:</b> 使用鍵盤 <b>W A S D</b> 或 <b>方向鍵</b>，或直接在手機左下角拖曳<b>虛擬搖桿</b>。</div>
+          <div><b>移動控制:</b> 使用鍵盤 <b>W A S D</b> 或 <b>方向鍵</b>，或在左下角拖曳<b>虛擬搖桿</b>。</div>
         </div>
         <div class="flex items-start gap-2">
           <span class="text-base">🏃</span>
-          <div><b>衝刺狂奔:</b> 長按鍵盤 <b>Shift</b> 或按住右下角 <b>🏃 RUN</b> 按鈕可獲得 <b>2.5 倍急速衝刺</b>！</div>
+          <div><b>衝刺狂奔:</b> 長按鍵盤 <b>Shift</b> 或按住右下角 <b>🏃 RUN</b> 按鈕可獲得 <b>2.5 倍極速衝刺</b>！</div>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="text-base">🪩</span>
+          <div><b>夜店模式:</b> 點擊 <b>🪩 TOGGLE CLUB</b> 觸發全房霓虹律動與派對調色！</div>
         </div>
         <div class="flex items-start gap-2">
           <span class="text-base">🪑</span>
-          <div><b>辦公椅坐下:</b> 靠近 8 個工作矩陣的辦公椅，按下 <b>E</b> 或 <b>ACTION</b> 即可優雅坐下工作。坐下時點擊 <b>STAND UP</b> 即可起立。</div>
+          <div><b>辦公椅坐下:</b> 靠近 8 個工作矩陣的辦公椅，按下 <b>E</b> 或 <b>ACTION</b> 即可坐下。坐下時點擊 <b>STAND UP</b> 即可起立。</div>
         </div>
         <div class="flex items-start gap-2">
           <span class="text-base">🎮</span>
@@ -300,18 +318,13 @@
         </div>
         <div class="flex items-start gap-2">
           <span class="text-base">🎡</span>
-          <div><b>賽博大輪盤:</b> 靠近金色指針大輪盤按下互動，全伺服器權威廣播幸運中獎！</div>
-        </div>
-        <div class="flex items-start gap-2">
-          <span class="text-base">📺</span>
-          <div><b>YouTube 音訊近距離漸弱:</b> 越靠近北面投影屏音量越大，遠離時自動衰減。</div>
+          <div><b>賽博大輪盤:</b> 靠近輪盤點擊抽獎，全體 0~36 數字權威隨機中獎同步！</div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // 綁定操作指南開關
     const guideModal = document.getElementById('guide-modal');
     document.getElementById('btn-toggle-guide').onclick = () => guideModal.classList.remove('hidden');
     document.getElementById('guide-close-btn').onclick = () => guideModal.classList.add('hidden');
@@ -320,7 +333,7 @@
     };
   </script>
 
-  <!-- Main Game ES Module -->
+  <!-- 主遊戲啟動入口 -->
   <script type="module" src="./js/game.js"></script>
 </body>
 </html>

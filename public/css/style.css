@@ -1,6 +1,24 @@
 /* ==========================================================================
-   2D Multiplayer Virtual Office — Animal Crossing Clay Style Theme
+   2D Multiplayer Virtual Office — Temple Aesthetics & Animal Crossing Theme
+   規格依據: Specification Section 2 (Frontend HTML5 Wrapper & Temple-Styled Overlays)
    ========================================================================== */
+
+:root {
+  /* 神殿風古典與動森療癒自定義色彩變數 (Custom CSS Variables) */
+  --temple-gold: #FFD166;
+  --temple-gold-dark: #B38300;
+  --temple-crimson: #E63946;
+  --temple-crimson-dark: #9D0208;
+  --temple-sand: #F7EAD0;
+  --temple-sand-border: #D8C3A5;
+  --temple-teal: #78C0A8;
+  --temple-teal-dark: #2D6A4F;
+  --temple-slate: #2B2D42;
+  --temple-glass-bg: rgba(255, 252, 245, 0.68);
+  --temple-glass-border: rgba(255, 255, 255, 0.75);
+  --temple-shadow: 0 10px 30px -4px rgba(43, 45, 66, 0.18);
+  --temple-glow: 0 0 16px rgba(255, 209, 102, 0.7);
+}
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -16,9 +34,14 @@ body, html {
   font-family: 'Nunito', 'Quicksand', system-ui, sans-serif;
   user-select: none;
   -webkit-user-select: none;
-  color: #2D3748;
+  color: var(--temple-slate);
 }
 
+/* ==========================================================================
+   1. DOM 階層核心容器 (DOM Hierarchy Setup)
+   ========================================================================== */
+
+/* #game-container: 全螢幕畫布容器 */
 #game-container {
   position: absolute;
   top: 0;
@@ -30,85 +53,176 @@ body, html {
   touch-action: none;
 }
 
-/* 溫馨動森卡片 (Cozy Clay Card) */
-.ac-card {
-  background: rgba(255, 253, 246, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 3px solid #78C0A8;
+/* #youtube-player-layer: 懸浮在 Canvas 之上的多媒體串流專屬層 */
+#youtube-player-layer {
+  position: absolute;
+  top: 70px;
+  right: 16px;
+  width: 320px;
+  height: 180px;
   border-radius: 1.25rem;
-  box-shadow: 0 10px 25px -4px rgba(45, 80, 68, 0.2), inset 0 2px 0 rgba(255, 255, 255, 0.95);
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  background: #000000;
+  z-index: 15;
+  pointer-events: auto;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.ac-btn {
-  background: #FDFBF7;
-  border: 2px solid #5AA790;
-  box-shadow: 0 4px 0 #3E7B68, 0 6px 12px rgba(0,0,0,0.1);
-  border-radius: 1rem;
-  transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
-  cursor: pointer;
-  font-weight: 800;
+/* #chat-overlay: 左下象限懸浮滾動聊天系統 */
+#chat-overlay {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  width: 340px;
+  max-width: calc(100vw - 140px);
+  z-index: 30;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.ac-btn:hover {
-  transform: translateY(-2px);
-  background: #FFFFFF;
-  box-shadow: 0 6px 0 #3E7B68, 0 8px 16px rgba(0,0,0,0.14);
-}
-.ac-btn:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #3E7B68;
+
+/* #mobile-action-hud: 右下象限神殿風格控制台 */
+#mobile-action-hud {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 30;
+  pointer-events: auto;
 }
 
 /* ==========================================================================
-   神殿風格透明懸浮動作按鈕 (Temple-Style Transparent Floating Overlays)
+   2. 神殿美學毛玻璃視覺樣式 (Temple Aesthetics & Frosted Glass)
    ========================================================================== */
-.temple-floating-btn {
-  width: 64px;
-  height: 64px;
+.temple-glass-card {
+  background: var(--temple-glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid var(--temple-glass-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--temple-shadow);
+  color: var(--temple-slate);
+}
+
+/* 聊天滾動日誌視窗 (Scrolling Message History Log) */
+.chat-history-window {
+  height: 160px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 192, 168, 0.6) transparent;
+}
+.chat-history-window::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-history-window::-webkit-scrollbar-thumb {
+  background: rgba(120, 192, 168, 0.6);
+  border-radius: 4px;
+}
+
+.chat-bubble-log {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1.5px solid rgba(120, 192, 168, 0.4);
+  border-radius: 0.85rem;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  animation: fadeInLog 0.2s ease-out;
+}
+
+@keyframes fadeInLog {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   3. 神殿透明懸浮動作按鈕 (Temple Action Overlays & Scaling)
+   ========================================================================== */
+.temple-btn {
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 2.5px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  background: rgba(255, 253, 245, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 20px rgba(43, 45, 66, 0.16), inset 0 2px 4px rgba(255, 255, 255, 0.8);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #1E293B;
+  color: var(--temple-slate);
   cursor: pointer;
   touch-action: none;
-  transition: transform 0.1s ease, background 0.15s ease, opacity 0.2s ease;
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, opacity 0.2s ease;
   user-select: none;
+  padding: 6px;
 }
 
-.temple-floating-btn:active {
-  transform: scale(0.92);
-  background: rgba(255, 255, 255, 0.45);
+/* 點擊主動縮放 (tap active scaling state: transform: scale(0.95)) */
+.temple-btn:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.65);
 }
 
-.temple-btn-label {
-  font-size: 10px;
+.temple-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(43, 45, 66, 0.22);
+}
+
+.temple-btn-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.temple-btn-text {
+  font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.5px;
-  margin-top: -2px;
+  margin-top: 2px;
+  color: #1E293B;
 }
 
-.btn-active-glow {
-  box-shadow: 0 0 18px #F59E0B, 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-  border-color: #F59E0B !important;
-  background: rgba(254, 243, 199, 0.65) !important;
+/* 特殊按鈕色彩樣式 */
+.btn-gold {
+  background: rgba(255, 209, 102, 0.4);
+  border-color: var(--temple-gold);
+}
+.btn-crimson {
+  background: rgba(230, 57, 70, 0.35);
+  border-color: var(--temple-crimson);
+}
+.btn-club-active {
+  background: rgba(168, 85, 247, 0.5) !important;
+  border-color: #C084FC !important;
+  box-shadow: 0 0 20px #A855F7, 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+  animation: pulseNeon 1s infinite alternate;
+}
+
+@keyframes pulseNeon {
+  from { filter: drop-shadow(0 0 4px #A855F7); }
+  to { filter: drop-shadow(0 0 14px #EC4899); }
 }
 
 /* ==========================================================================
-   左下虛擬觸控搖桿 (Mobile Virtual Joystick)
+   4. 虛擬搖桿底盤 (Virtual Joystick)
    ========================================================================== */
 #joystick-touch-zone {
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 48vw;
-  height: 48vh;
+  width: 44vw;
+  height: 44vh;
   z-index: 20;
   pointer-events: auto;
   touch-action: none;
@@ -116,12 +230,12 @@ body, html {
 
 #virtual-joystick-base {
   position: absolute;
-  width: 110px;
-  height: 110px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.25);
   backdrop-filter: blur(8px);
-  border: 3px solid rgba(255, 255, 255, 0.6);
+  border: 3px solid rgba(255, 255, 255, 0.65);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
   transform: translate(-50%, -50%);
   display: none;
@@ -132,24 +246,49 @@ body, html {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 50px;
-  height: 50px;
-  margin-top: -25px;
-  margin-left: -25px;
+  width: 46px;
+  height: 46px;
+  margin-top: -23px;
+  margin-left: -23px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #52B788, #2D6A4F);
-  border: 2.5px solid #FFFFFF;
+  border: 2px solid #FFFFFF;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
   pointer-events: none;
 }
 
 /* ==========================================================================
-   嵌入式復古街機小遊戲視窗 (Snake Arcade Overlay)
+   5. 🪩 夜店派對模式全域動態濾鏡覆蓋 (Club Disco Overlay)
+   ========================================================================== */
+#club-disco-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  background: radial-gradient(circle at 50% 30%, rgba(168, 85, 247, 0.25), rgba(236, 72, 153, 0.2), rgba(15, 23, 42, 0.4));
+  mix-blend-mode: color-burn;
+}
+
+#club-disco-overlay.active {
+  opacity: 1;
+  animation: discoFlicker 3s infinite alternate ease-in-out;
+}
+
+@keyframes discoFlicker {
+  0% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(180deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+/* ==========================================================================
+   6. 嵌入式貪吃蛇街機視窗 (Snake Arcade Modal)
    ========================================================================== */
 .snake-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(15, 23, 42, 0.78);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -161,7 +300,7 @@ body, html {
 .snake-arcade-box {
   width: 380px;
   background: #FFFDF9;
-  border: 4px solid #F59E0B;
+  border: 4px solid var(--temple-gold);
   border-radius: 1.5rem;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
   padding: 1.25rem;
@@ -192,10 +331,6 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.snake-close-btn:hover {
-  background: #FCA5A5;
-  color: #7F1D1D;
 }
 
 .snake-hud {
@@ -234,7 +369,7 @@ body, html {
 
 .snake-action-btn {
   background: #FEF3C7;
-  border: 2px solid #F59E0B;
+  border: 2px solid var(--temple-gold);
   color: #92400E;
   font-weight: 800;
   padding: 0.35rem 0.75rem;
@@ -242,23 +377,8 @@ body, html {
   cursor: pointer;
   font-size: 12px;
 }
-.snake-action-btn:hover {
-  background: #FDE68A;
-}
 
-/* ==========================================================================
-   動畫效果 (Keyframes)
-   ========================================================================== */
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1.0); }
-}
-
-@keyframes bounceSlow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-.animate-bounce-slow {
-  animation: bounceSlow 2s infinite ease-in-out;
 }

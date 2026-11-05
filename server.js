@@ -1,9 +1,18 @@
 /**
  * ============================================================================
- * 2D Multiplayer Virtual Office — Authoritative Game Server
- * 技術棧: Node.js, Express, Socket.io
- * 設計模式: 狀態同步權威服務器架構 (State Synchronization Architecture)
- * 註釋語言: 繁體中文 / 簡體中文專業註釋
+ * 2D Multiplayer Virtual Office — Authoritative Game Server (Stage 2)
+ * 技術棧: Node.js (ES6+), Express, Socket.io
+ * 架構規範: Stage 2 伺服器權威狀態機 (Authoritative Backend Server Interface)
+ * 核心功能:
+ *  - 全局房間狀態樹 (Global In-Memory State Database: rooms.office)
+ *  - 嚴格 CORS 跨域設定與 HTTP / WebSocket 雙通道通訊
+ *  - 核心事件監聽與廣播協議:
+ *      * connection: 初始化玩家預設座標與唯一 ID
+ *      * join_room: 回傳 current_players 狀態快照，並廣播 new_player 給其他用戶
+ *      * player_move: 即時更新內存數據庫並低延遲廣播 player_moved 遙測數據
+ *      * roulette_spin: 權威隨機生成 0~36 中獎扇區，廣播 roulette_started 並設置 4 秒防重入鎖
+ *      * chat_message: XSS 惡意字元過濾並廣播 chat_broadcast
+ *      * disconnect: 狀態清理並廣播 player_disconnected
  * ============================================================================
  */
 
@@ -16,94 +25,94 @@ const cors = require('cors');
 const app = express();
 const server = http.createServer(app);
 
-// 跨域與 Socket.io 配置 (支援反向代理 WebSocket 升級協議)
-app.use(cors());
+// 嚴格 CORS 與中間件配置 (支援跨域開發與反向代理)
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST']
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 初始化權威 WebSocket 伺服器
 const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
   },
   pingInterval: 10000,
-  pingTimeout: 5000
+  pingTimeout: 5000,
+  transports: ['websocket', 'polling']
 });
 
 const PORT = process.env.PORT || 3000;
 
 // ============================================================================
-// 1. 全局遊戲狀態存儲 (Authoritative Server State Store)
+// 1. 全局記憶體資料庫 (Global In-Memory State Database)
 // ============================================================================
-
-/**
- * 在線玩家字典 Map<socketId, PlayerState>
- * @type {Map<string, Object>}
- */
-const players = new Map();
-
-/**
- * 輪盤扇區配置 (Cyber Roulette 8 Sectors)
- */
-const ROULETTE_SECTORS = [
-  { index: 0, label: '🌟 幸運之星 (Bell Bonus)', color: '#FFD166' },
-  { index: 1, label: '☕ 特調南洋 Kopi Break', color: '#06D6A0' },
-  { index: 2, label: '⚡ +50 專注衝刺 Buff', color: '#118AB2' },
-  { index: 3, label: '🍕 披薩派對大餐', color: '#EF476F' },
-  { index: 4, label: '🍃 動森神秘驚喜禮物', color: '#70C1B3' },
-  { index: 5, label: '💻 零 Bug 程式碼神級祝福', color: '#8338EC' },
-  { index: 6, label: '🎉 本日最佳辦公室之星 MVP', color: '#F77F00' },
-  { index: 7, label: '💤 10分鐘能量微充電 Nap', color: '#3A86FF' }
-];
-
-/**
- * 當前多媒體投影屏播放狀態 (YouTube Proximity Player)
- */
-let currentMediaState = {
-  videoUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A', // 預設舒適 Lofi 影片
-  embedUrl: 'https://www.youtube.com/embed/5qap5aO4i9A?autoplay=1&mute=0&loop=1&playlist=5qap5aO4i9A&controls=1',
-  title: 'Cozy Lofi Hip Hop Beats to Relax/Work',
-  setBy: 'System'
+const rooms = {
+  office: {
+    players: {}, // key: socket.id -> { id, x, y, anim, heldItem, isSprinting, isSitting, species, shirtColor, name }
+    roulette: {
+      active: false,
+      resultIndex: -1,
+      lastWinner: null
+    },
+    media: {
+      videoUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A',
+      embedUrl: 'https://www.youtube.com/embed/5qap5aO4i9A?autoplay=1&mute=0&loop=1&playlist=5qap5aO4i9A&controls=1',
+      title: 'Cozy Lofi Hip Hop Beats to Relax/Work',
+      setBy: 'System'
+    },
+    clubMode: false // 🪩 TOGGLE CLUB 夜店模式全房同步
+  }
 };
 
 /**
- * 隨機生成 Animal Crossing 風格的可愛角色外觀配置
+ * 可愛動森風格外觀隨機配置生成器
  */
 const SPECIES_LIST = ['CAT', 'BEAR', 'BUNNY', 'PUPPY'];
 const SHIRT_COLORS = [
-  '#FF6B6B', '#4ECDC4', '#FFE66D', '#1A535C', 
+  '#FF6B6B', '#4ECDC4', '#FFE66D', '#1A535C',
   '#F7B267', '#A8DADC', '#E63946', '#9B5DE5', '#00BBF9'
 ];
+const NAME_PREFIXES = ['Kopi', 'Mochi', 'Pudding', 'Boba', 'Matcha', 'Cookie', 'Cocoa', 'Latte'];
 
-function generateRandomAvatar() {
+function generateAvatarConfig() {
   const species = SPECIES_LIST[Math.floor(Math.random() * SPECIES_LIST.length)];
   const shirtColor = SHIRT_COLORS[Math.floor(Math.random() * SHIRT_COLORS.length)];
-  const defaultNames = ['KopiPeng', 'Mochi', 'Pudding', 'Caramel', 'Boba', 'Matcha', 'Cookie', 'Cocoa'];
-  const name = defaultNames[Math.floor(Math.random() * defaultNames.length)] + '_' + Math.floor(100 + Math.random() * 900);
+  const name = NAME_PREFIXES[Math.floor(Math.random() * NAME_PREFIXES.length)] + '_' + Math.floor(100 + Math.random() * 900);
   return { species, shirtColor, name };
 }
 
 /**
- * 將使用者輸入的 YouTube Watch 連結安全轉化為 Embed 嵌入式網址
- * 支援: https://www.youtube.com/watch?v=ID , https://youtu.be/ID , https://www.youtube.com/embed/ID
+ * 安全過濾 XSS 惡意腳本字符
+ */
+function sanitizeString(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .slice(0, 120)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * YouTube 網址正規化清洗
  */
 function sanitizeYouTubeEmbedUrl(inputUrl) {
   if (!inputUrl || typeof inputUrl !== 'string') return null;
   let videoId = null;
 
-  // 1. 標準網址: youtube.com/watch?v=xxx
   const watchMatch = inputUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
-  if (watchMatch) {
-    videoId = watchMatch[1];
-  }
+  if (watchMatch) videoId = watchMatch[1];
 
-  // 2. 短網址: youtu.be/xxx
   if (!videoId) {
     const shortMatch = inputUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
     if (shortMatch) videoId = shortMatch[1];
   }
 
-  // 3. 已是 Embed 網址: youtube.com/embed/xxx
   if (!videoId) {
     const embedMatch = inputUrl.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
     if (embedMatch) videoId = embedMatch[1];
@@ -119,77 +128,90 @@ function sanitizeYouTubeEmbedUrl(inputUrl) {
 }
 
 // ============================================================================
-// 2. SOCKET.IO 事件分發系統 (Authoritative WebSocket Dispatcher)
+// 2. SOCKET.IO 核心事件路由 (Authoritative Socket.io Event Router)
 // ============================================================================
 
 io.on('connection', (socket) => {
-  console.log(`[Socket.io] 🟢 玩家已連接: ID = ${socket.id}`);
+  console.log(`[Socket.io] 🟢 偵測到新連接: ID = ${socket.id}`);
 
-  // 初始化玩家資料 (預設在辦公室玄關入口生成)
-  const avatar = generateRandomAvatar();
-  const newPlayer = {
+  const avatar = generateAvatarConfig();
+
+  // 1. 初始化預設玩家狀態 (滿足規範: id, x: 400, y: 300, anim: 'idle', heldItem: 'none', isSprinting: false)
+  const defaultPlayer = {
     id: socket.id,
     name: avatar.name,
     species: avatar.species,
     shirtColor: avatar.shirtColor,
-    x: 640 + Math.floor(Math.random() * 80 - 40),
-    y: 720 + Math.floor(Math.random() * 40 - 20),
-    vx: 0,
-    vy: 0,
-    anim: 'idle_down',
-    heldItem: null, // 持有食物: 'Coke' | 'Snack' | 'Pizza' | null
+    x: 400,
+    y: 300,
+    anim: 'idle',
+    heldItem: 'none',
     isSprinting: false,
     isSitting: false,
     chairId: null,
     joinedAt: Date.now()
   };
 
-  players.set(socket.id, newPlayer);
+  // ==========================================================================
+  // 事件 A: 加入房間 (join_room)
+  // ==========================================================================
+  const handleJoinRoom = (roomName = 'office') => {
+    socket.join(roomName);
 
-  // 1. 向新進玩家發送全域初始狀態套件 (包含本地 ID, 所有在線玩家, 投影狀態, 輪盤設定)
-  const playersArray = Array.from(players.values());
-  socket.emit('init_state', {
-    selfId: socket.id,
-    players: playersArray,
-    currentMedia: currentMediaState,
-    rouletteSectors: ROULETTE_SECTORS
+    // 儲存進入全局內存資料庫
+    rooms.office.players[socket.id] = defaultPlayer;
+
+    console.log(`[Socket.io] 🚪 玩家 ${defaultPlayer.name} (${socket.id}) 正式加入房間: ${roomName}`);
+
+    // A1: 立即將房間現存所有玩家狀態字典回傳給新客戶端 (current_players)
+    socket.emit('current_players', {
+      selfId: socket.id,
+      players: rooms.office.players,
+      roulette: rooms.office.roulette,
+      currentMedia: rooms.office.media,
+      clubMode: rooms.office.clubMode
+    });
+
+    // A2: 向其他所有在線 Socket 廣播新玩家加入事件套件 (new_player)
+    socket.to(roomName).emit('new_player', defaultPlayer);
+  };
+
+  // 支援客戶端明確發送 join_room，或連接即時自動登記
+  socket.on('join_room', (data) => {
+    const roomName = (data && data.room) || 'office';
+    handleJoinRoom(roomName);
   });
 
-  // 2. 廣播新玩家加入事件至其他所有在線用戶
-  socket.broadcast.emit('player_join', newPlayer);
+  // 自動登記加入 office 房間，杜絕漏觸發
+  handleJoinRoom('office');
 
   // ==========================================================================
-  // 玩家位移與動畫同步 (player_move)
+  // 事件 B: 玩家移動與遙測同步 (player_move)
   // ==========================================================================
-  socket.on('player_move', (data) => {
-    const player = players.get(socket.id);
+  socket.on('player_move', (payload) => {
+    const player = rooms.office.players[socket.id];
     if (!player) return;
 
-    // 狀態機互斥檢查: 如果玩家正處於坐姿，強制位置鎖定不可位移
-    if (player.isSitting && !data.isSitting) {
-      // 玩家請求站起
-      player.isSitting = false;
-      player.chairId = null;
+    // 嚴格狀態檢查: 若處於坐姿且無站起請求，鎖死位置
+    if (player.isSitting && payload.isSitting) {
+      payload.x = player.x;
+      payload.y = player.y;
     }
 
-    // 更新權威座標與狀態
-    player.x = Number(data.x) || player.x;
-    player.y = Number(data.y) || player.y;
-    player.vx = Number(data.vx) || 0;
-    player.vy = Number(data.vy) || 0;
-    player.anim = data.anim || player.anim;
-    player.heldItem = data.heldItem !== undefined ? data.heldItem : player.heldItem;
-    player.isSprinting = Boolean(data.isSprinting);
-    player.isSitting = Boolean(data.isSitting);
-    player.chairId = data.chairId || null;
+    // 立即更新伺服器內存狀態庫
+    player.x = typeof payload.x === 'number' ? payload.x : player.x;
+    player.y = typeof payload.y === 'number' ? payload.y : player.y;
+    player.anim = payload.anim || player.anim;
+    player.heldItem = payload.heldItem !== undefined ? payload.heldItem : player.heldItem;
+    player.isSprinting = Boolean(payload.isSprinting);
+    player.isSitting = Boolean(payload.isSitting);
+    player.chairId = payload.chairId || null;
 
-    // 向其他所有客戶端同步位移廣播 (帶時間戳以支援客戶端線性差值平滑運算)
-    socket.broadcast.emit('player_moved', {
+    // 低延遲廣播 player_moved 封包至同房間其他成員
+    socket.to('office').emit('player_moved', {
       id: socket.id,
       x: player.x,
       y: player.y,
-      vx: player.vx,
-      vy: player.vy,
       anim: player.anim,
       heldItem: player.heldItem,
       isSprinting: player.isSprinting,
@@ -200,10 +222,109 @@ io.on('connection', (socket) => {
   });
 
   // ==========================================================================
-  // 坐下與站起事件 (chair_interact)
+  // 事件 C: 賽博輪盤權威伺服器抽獎 (roulette_spin)
+  // ==========================================================================
+  socket.on('roulette_spin', () => {
+    const rouletteState = rooms.office.roulette;
+
+    // 權威防重入互斥鎖: 若正在旋轉中，嚴格拒絕重複觸發
+    if (rouletteState.active) {
+      console.warn(`[Roulette] ⚠️ 輪盤正處於旋轉中，拒絕重入觸發 (發起者: ${socket.id})`);
+      return;
+    }
+
+    // 生成真正隨機中獎扇區 (0 到 36 經典輪盤索引)
+    const winningIndex = Math.floor(Math.random() * 37); // 0 ~ 36
+    rouletteState.active = true;
+    rouletteState.resultIndex = winningIndex;
+    const player = rooms.office.players[socket.id];
+    const playerName = player ? player.name : 'Colleague';
+    rouletteState.lastWinner = playerName;
+
+    console.log(`[Roulette] 🎯 權威伺服器開獎! 玩家: ${playerName} -> 扇區號碼: [${winningIndex}]`);
+
+    // 向所有客戶端廣播 roulette_started 指令保證同步旋轉
+    io.to('office').emit('roulette_started', {
+      winningIndex: winningIndex,
+      durationMs: 4000,
+      spunById: socket.id,
+      spunByName: playerName,
+      timestamp: Date.now()
+    });
+
+    // 4秒旋轉緩動結束後，權威解鎖 roulette.active = false
+    setTimeout(() => {
+      rouletteState.active = false;
+      console.log('[Roulette] ✅ 4秒旋轉期滿，輪盤冷卻解鎖，恢復待機狀態。');
+      io.to('office').emit('roulette_ended', {
+        resultIndex: winningIndex,
+        winner: playerName
+      });
+    }, 4000);
+  });
+
+  // ==========================================================================
+  // 事件 D: 聊天廣播與惡意代碼過濾 (chat_message)
+  // ==========================================================================
+  socket.on('chat_message', (payload) => {
+    const player = rooms.office.players[socket.id];
+    if (!player) return;
+
+    const rawMsg = typeof payload === 'string' ? payload : (payload.message || '');
+    const cleanMsg = sanitizeString(rawMsg).trim();
+
+    if (!cleanMsg) return;
+
+    // 廣播 chat_broadcast 包含 { id, message } 與玩家姓名和時間戳
+    io.to('office').emit('chat_broadcast', {
+      id: socket.id,
+      name: player.name,
+      message: cleanMsg,
+      timestamp: Date.now()
+    });
+  });
+
+  // ==========================================================================
+  // 事件 E: 🪩 夜店派對模式全房同步 (toggle_club_mode)
+  // ==========================================================================
+  socket.on('toggle_club_mode', () => {
+    rooms.office.clubMode = !rooms.office.clubMode;
+    const player = rooms.office.players[socket.id];
+    const triggerName = player ? player.name : 'Someone';
+
+    console.log(`[ClubMode] 🪩 派對夜店模式變更: ${rooms.office.clubMode} (操作者: ${triggerName})`);
+    io.to('office').emit('club_mode_changed', {
+      active: rooms.office.clubMode,
+      triggeredBy: triggerName
+    });
+  });
+
+  // ==========================================================================
+  // 事件 F: 茶水間物品拾取 / 享用 (item_action)
+  // ==========================================================================
+  socket.on('item_action', (data) => {
+    const player = rooms.office.players[socket.id];
+    if (!player) return;
+
+    if (data.action === 'pickup') {
+      player.heldItem = data.item || 'none';
+    } else if (data.action === 'consume') {
+      player.heldItem = 'none';
+    }
+
+    io.to('office').emit('item_state_changed', {
+      id: socket.id,
+      heldItem: player.heldItem,
+      action: data.action,
+      item: data.item
+    });
+  });
+
+  // ==========================================================================
+  // 事件 G: 椅子交互 (chair_interact)
   // ==========================================================================
   socket.on('chair_interact', (data) => {
-    const player = players.get(socket.id);
+    const player = rooms.office.players[socket.id];
     if (!player) return;
 
     if (data.action === 'sit') {
@@ -211,16 +332,16 @@ io.on('connection', (socket) => {
       player.chairId = data.chairId;
       player.x = data.x;
       player.y = data.y;
-      player.anim = data.anim || 'sit_down';
+      player.anim = 'sit_down';
     } else {
       player.isSitting = false;
       player.chairId = null;
       player.x = data.standX || player.x;
       player.y = data.standY || (player.y + 24);
-      player.anim = 'idle_down';
+      player.anim = 'idle';
     }
 
-    io.emit('player_moved', {
+    io.to('office').emit('player_moved', {
       id: socket.id,
       x: player.x,
       y: player.y,
@@ -234,125 +355,62 @@ io.on('connection', (socket) => {
   });
 
   // ==========================================================================
-  // 茶水間食物與飲料領取 / 享用 (item_action)
-  // ==========================================================================
-  socket.on('item_action', (data) => {
-    const player = players.get(socket.id);
-    if (!player) return;
-
-    if (data.action === 'pickup') {
-      player.heldItem = data.item; // 'Coke' | 'Snack' | 'Pizza'
-    } else if (data.action === 'consume') {
-      player.heldItem = null;
-    }
-
-    // 全體廣播該玩家手持物品變動
-    io.emit('item_state_changed', {
-      id: socket.id,
-      heldItem: player.heldItem,
-      action: data.action,
-      item: data.item
-    });
-  });
-
-  // ==========================================================================
-  // 頭頂對話氣泡與聊天廣播 (chat_message)
-  // ==========================================================================
-  socket.on('chat_message', (data) => {
-    const player = players.get(socket.id);
-    if (!player) return;
-
-    const rawMessage = (data.message || '').trim();
-    if (!rawMessage) return;
-
-    // 基礎安全清洗與長度截斷 (防止 XSS 與過長文本溢出)
-    const sanitizedMsg = rawMessage
-      .slice(0, 100)
-      .replace(/[<>]/g, '');
-
-    io.emit('chat_broadcast', {
-      id: socket.id,
-      name: player.name,
-      message: sanitizedMsg,
-      timestamp: Date.now()
-    });
-  });
-
-  // ==========================================================================
-  // 賽博輪盤權威伺服器抽獎事件 (spin_roulette)
-  // ==========================================================================
-  socket.on('spin_roulette', () => {
-    const player = players.get(socket.id);
-    if (!player) return;
-
-    // 權威伺服器端決定最終落點扇區索引 (0 ~ 7)
-    const winningIndex = Math.floor(Math.random() * ROULETTE_SECTORS.length);
-    const winningSector = ROULETTE_SECTORS[winningIndex];
-
-    console.log(`[Roulette] 🎯 玩家 ${player.name} 轉動了輪盤 -> 中獎扇區: [${winningIndex}] ${winningSector.label}`);
-
-    // 向全房廣播旋轉同步指令 (包含指定扇區、持續時長 4000ms 與觸發玩家)
-    io.emit('roulette_spin_result', {
-      spunById: socket.id,
-      spunByName: player.name,
-      winningIndex: winningIndex,
-      sectorLabel: winningSector.label,
-      durationMs: 4000,
-      timestamp: Date.now()
-    });
-  });
-
-  // ==========================================================================
-  // 多媒體投影區 YouTube 網址切換 (submit_youtube_url)
+  // 事件 H: 多媒體 YouTube 網址設定 (submit_youtube_url)
   // ==========================================================================
   socket.on('submit_youtube_url', (data) => {
-    const player = players.get(socket.id);
+    const player = rooms.office.players[socket.id];
     if (!player) return;
 
     const sanitized = sanitizeYouTubeEmbedUrl(data.url);
     if (sanitized) {
-      currentMediaState = {
+      rooms.office.media = {
         videoUrl: data.url,
         embedUrl: sanitized.embedUrl,
-        title: data.title || 'Multiplayer Screen Share',
+        title: data.title || 'Shared YouTube Stream',
         setBy: player.name
       };
 
       console.log(`[Media] 📺 玩家 ${player.name} 更新了投影螢幕: ${sanitized.embedUrl}`);
-      io.emit('media_state_changed', currentMediaState);
+      io.to('office').emit('media_state_changed', rooms.office.media);
     } else {
-      socket.emit('media_error', { message: '請輸入有效的 YouTube 影片網址 (例如: https://www.youtube.com/watch?v=... 或 https://youtu.be/...)' });
+      socket.emit('media_error', { message: '請輸入有效的 YouTube 影片網址！' });
     }
   });
 
   // ==========================================================================
-  // 玩家斷線清理 (disconnect)
+  // 事件 I: 斷線清理 (disconnect)
   // ==========================================================================
   socket.on('disconnect', () => {
     console.log(`[Socket.io] 🔴 玩家已斷開: ID = ${socket.id}`);
-    players.delete(socket.id);
-    io.emit('player_leave', { id: socket.id });
+
+    // 從全局記憶體字典中刪除該玩家節點
+    delete rooms.office.players[socket.id];
+
+    // 廣播 player_disconnected 事件通知所有前端清除遠端精靈實體
+    io.to('office').emit('player_disconnected', { id: socket.id });
   });
 });
 
-// 健康檢查與系統狀態端點
+// 健康檢查與除錯端點
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    onlinePlayers: players.size,
-    media: currentMediaState.title,
+    room: 'office',
+    onlinePlayers: Object.keys(rooms.office.players).length,
+    rouletteActive: rooms.office.roulette.active,
+    clubMode: rooms.office.clubMode,
     uptime: process.uptime()
   });
 });
 
-// 啟動 HTTP + WebSocket 伺服器
+// 啟動伺服器
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`
   =============================================================
-  🏢 2D Multiplayer Virtual Office Game Server Started!
-  🔗 監聽端口: http://0.0.0.0:${PORT}
-  🎨 視覺風格: Animal Crossing Chubby Cozy Clay Vector Style
-  🕹️ 核心引擎: HTML5 Phaser 3 + Node.js Socket.io
+  🏢 2D Multiplayer Virtual Office — Authoritative Server (Stage 2)
+  🔗 伺服器監聽: http://0.0.0.0:${PORT}
+  🎨 視覺主題: Animal Crossing Cozy Clay + Temple Glassmorphism
+  🕹️ 核心協議: Socket.io Low-Latency Authoritative Broadcasts
   =============================================================
   `);
 });
