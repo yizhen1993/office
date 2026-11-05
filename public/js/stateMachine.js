@@ -87,10 +87,11 @@ export class StateMutexMachine {
     this.isSprinting = false;
     this.activeChair = chair;
 
-    // 強制停止物理實體線速度 (kill all movement velocities)
+    // 強制停止物理實體線速度並停用物理碰撞分離 (防止坐姿時被固態家具物理推擠抖動)
     if (playerSprite && playerSprite.body) {
       playerSprite.body.setVelocity(0, 0);
-      playerSprite.body.moves = false; // 暫停實體物理推力
+      playerSprite.body.moves = false;  // 暫停實體物理推力
+      playerSprite.body.enable = false; // 暫停碰撞計算，確保鎖定於坐姿點
     }
 
     this.applyUiConstraints();
@@ -105,8 +106,9 @@ export class StateMutexMachine {
       this.activeChair = null;
     }
 
-    // 恢復實體物理運動
+    // 恢復實體物理運動與碰撞檢測
     if (playerSprite && playerSprite.body) {
+      playerSprite.body.enable = true;
       playerSprite.body.moves = true;
       playerSprite.body.setVelocity(0, 0);
     }

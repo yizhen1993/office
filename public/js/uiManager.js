@@ -1118,8 +1118,9 @@ export class UIManager {
 
   /**
    * 依據玩家與投影屏的距離動態計算音量衰減 (Proximity Volume Attenuation)
+   * 擴大至 750px，確保整個兩側辦公桌群 (Cluster 1 & Cluster 2) 均享有舒適飽滿的音樂
    */
-  updateProximityAudio(distance, maxRadius = 380) {
+  updateProximityAudio(distance, maxRadius = 750) {
     if (!this.youtubeContainer) return;
     const iframe = this.youtubeContainer.querySelector('iframe');
     if (!iframe) return;
@@ -1129,12 +1130,13 @@ export class UIManager {
         // 超出聽覺半徑，靜音或降低透明度
         this.youtubeContainer.style.opacity = '0.15';
       } else {
-        // 線性漸強 (越接近音量越飽滿)
+        // 進入音樂區 (覆蓋所有辦公桌區域)，全亮顯示
         this.youtubeContainer.style.opacity = '1.0';
       }
     }
 
-    const volumeRatio = distance > maxRadius ? 0.05 : Math.max(0.1, 1.0 - (distance / maxRadius));
+    // 辦公區音樂平滑音量衰減：在 750px 辦公桌範圍內維持 35% ~ 100% 飽滿音樂音量
+    const volumeRatio = distance > maxRadius ? 0.05 : Math.max(0.35, 1.0 - (distance / maxRadius) * 0.65);
     // 透過 postMessage 嘗試向 YouTube iframe 傳送音量調節
     try {
       const volumePercent = Math.round(volumeRatio * 100);

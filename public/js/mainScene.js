@@ -270,8 +270,8 @@ export class MainScene extends Phaser.Scene {
           const cpu = this.add.image(dx + 34, dy - 6, 'prop_cpu');
           cpu.setDepth(dy + 1);
 
-          // C. 旋轉人體工學椅 (Swivel Office Chair)
-          const chairY = dy + 34;
+          // C. 旋轉人體工學椅 (Swivel Office Chair: 舒適後移並完美對準桌面工作區)
+          const chairY = dy + 38;
           const chair = this.add.image(dx - 18, chairY, 'office_chair');
           chair.setDepth(chairY - 1); // 椅子比桌子稍前，可被玩家坐下覆蓋
 
@@ -281,10 +281,10 @@ export class MainScene extends Phaser.Scene {
             x: dx - 18,
             y: chairY,
             sitX: dx - 18,
-            sitY: chairY - 10,
+            sitY: chairY - 12,
             dir: 'up',
             standX: dx - 18,
-            standY: chairY + 28
+            standY: chairY + 32
           };
           this.chairs.push(chairData);
 
@@ -305,30 +305,36 @@ export class MainScene extends Phaser.Scene {
     this.mediaScreenSprite.setDepth(pos.y);
     this.mediaScreenSprite.refreshBody();
 
-    // 投影地毯互動光圈標記 (置於大屏幕前方觀影區)
+    // 投影地毯互動光圈標記 (置於大屏幕前方觀影區，並附帶全辦公區柔和音頻波紋)
     const zoneBeacon = this.add.graphics();
     zoneBeacon.lineStyle(2, 0x38BDF8, 0.6);
     zoneBeacon.fillStyle(0x38BDF8, 0.12);
     zoneBeacon.strokeCircle(pos.x, pos.y + 60, 50);
     zoneBeacon.fillCircle(pos.x, pos.y + 60, 50);
+
+    // 寬廣全辦公桌音頻波紋光環
+    zoneBeacon.lineStyle(1.5, 0x38BDF8, 0.2);
+    zoneBeacon.strokeCircle(pos.x, pos.y + 60, 240);
+    zoneBeacon.lineStyle(1, 0x38BDF8, 0.1);
+    zoneBeacon.strokeCircle(pos.x, pos.y + 60, 480);
     zoneBeacon.setDepth(GAME_CONFIG.LAYERS.FLOOR + 2);
 
     // 嚴格依據規範配置: 正前方恰好 5 個獨立圓潤沙發座位 (Exactly 5 distinct chubby-styled sofa sitting seats/nodes)
     const sofaConfig = GAME_CONFIG.ZONES.MEDIA_SCREEN.sofaSeats;
     sofaConfig.forEach((seat) => {
-      const sofa = this.staticColliders.create(seat.x, seat.y, 'sofa_single_seat');
+      // 改為一般家具圖層，避免固態碰撞體阻擋或排擠坐下之玩家
+      const sofa = this.add.image(seat.x, seat.y, 'sofa_single_seat');
       sofa.setDepth(seat.y);
-      sofa.refreshBody();
 
       this.chairs.push({
         id: seat.id,
         x: seat.x,
         y: seat.y,
         sitX: seat.x,
-        sitY: seat.y - 8,
+        sitY: seat.y - 12,
         dir: 'up',
         standX: seat.x,
-        standY: seat.y + 32
+        standY: seat.y + 36
       });
     });
 
@@ -362,26 +368,26 @@ export class MainScene extends Phaser.Scene {
     couch.setDepth(lounge.y);
     couch.refreshBody();
 
-    // 註冊沙發坐姿互動節點 (面向北面電視)
+    // 註冊沙發坐姿互動節點 (面向北面電視，精確對齊沙發頂排軟墊)
     this.chairs.push({
       id: 'arcade_couch_left',
-      x: lounge.x - 24,
-      y: lounge.y + 8,
-      sitX: lounge.x - 24,
-      sitY: lounge.y - 4,
+      x: lounge.x - 2,
+      y: lounge.y - 20,
+      sitX: lounge.x - 2,
+      sitY: lounge.y - 36,
       dir: 'up',
-      standX: lounge.x - 24,
-      standY: lounge.y + 44
+      standX: lounge.x - 2,
+      standY: lounge.y + 45
     });
     this.chairs.push({
       id: 'arcade_couch_right',
-      x: lounge.x + 24,
-      y: lounge.y + 8,
-      sitX: lounge.x + 24,
-      sitY: lounge.y - 4,
+      x: lounge.x + 46,
+      y: lounge.y - 20,
+      sitX: lounge.x + 46,
+      sitY: lounge.y - 36,
       dir: 'up',
-      standX: lounge.x + 24,
-      standY: lounge.y + 44
+      standX: lounge.x + 46,
+      standY: lounge.y + 45
     });
 
     // 註冊電視為街機小遊戲觸發器 (Interact for Snake)
@@ -407,18 +413,19 @@ export class MainScene extends Phaser.Scene {
 
     // B. 吧檯椅 (3 張高腳圓凳)
     [-55, 0, 55].forEach((offset, idx) => {
-      const stool = this.add.image(pantry.x + offset, pantry.y + 30, 'bar_stool');
-      stool.setDepth(pantry.y + 30);
+      const stoolY = pantry.y + 34;
+      const stool = this.add.image(pantry.x + offset, stoolY, 'bar_stool');
+      stool.setDepth(stoolY);
 
       this.chairs.push({
         id: `bar_stool_${idx}`,
         x: pantry.x + offset,
-        y: pantry.y + 30,
+        y: stoolY,
         sitX: pantry.x + offset,
-        sitY: pantry.y + 20,
+        sitY: stoolY - 12,
         dir: 'up',
         standX: pantry.x + offset,
-        standY: pantry.y + 54
+        standY: stoolY + 36
       });
     });
 
@@ -903,7 +910,7 @@ export class MainScene extends Phaser.Scene {
       const chair = this.mutexMachine.activeChair;
       if (chair) {
         const sitX = chair.sitX !== undefined ? chair.sitX : chair.x;
-        const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 10);
+        const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 12);
         const sitDir = chair.dir || 'up';
         this.player.setPosition(sitX, sitY);
         this.playerContainer.setPosition(sitX, sitY);
@@ -912,7 +919,9 @@ export class MainScene extends Phaser.Scene {
         this.currentAnimKey = `sit_${sitDir}`;
         this.updatePlayerVisuals(sitDir, true, false);
       }
-      this.player.body.setVelocity(0, 0);
+      if (this.player && this.player.body) {
+        this.player.body.setVelocity(0, 0);
+      }
       this.network.update(time, delta);
       return;
     }
@@ -1147,9 +1156,9 @@ export class MainScene extends Phaser.Scene {
         closest = { type: obj.type, label: obj.label, data: obj };
       }
 
-      // 多媒體投影音量隨距離衰減感測 (Proximity Audio Volume)
+      // 多媒體投影音量隨距離衰減感測 (Proximity Audio Volume: 擴展至全辦公桌覆蓋半徑 750px)
       if (obj.type === 'SCREEN') {
-        this.ui.updateProximityAudio(d);
+        this.ui.updateProximityAudio(d, GAME_CONFIG.ZONES.MEDIA_SCREEN.audioRadius);
       }
     }
 
@@ -1191,8 +1200,14 @@ export class MainScene extends Phaser.Scene {
     this.mutexMachine.enterSit(chair, this.player);
 
     const sitX = chair.sitX !== undefined ? chair.sitX : chair.x;
-    const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 10);
+    const sitY = chair.sitY !== undefined ? chair.sitY : (chair.y - 12);
     const sitDir = chair.dir || 'up';
+
+    // 禁用物理實體碰撞分離，防止坐姿時被固態家具排擠偏移
+    if (this.player && this.player.body) {
+      this.player.body.enable = false;
+      this.player.body.setVelocity(0, 0);
+    }
 
     // 平滑瞬移坐入椅子精確位置
     this.player.setPosition(sitX, sitY);
@@ -1232,6 +1247,12 @@ export class MainScene extends Phaser.Scene {
     const standY = chair && chair.standY !== undefined ? chair.standY : (this.player.y + 26);
 
     this.mutexMachine.standUp(this.player);
+
+    // 恢復實體物理運動與碰撞檢測
+    if (this.player && this.player.body) {
+      this.player.body.enable = true;
+      this.player.body.setVelocity(0, 0);
+    }
 
     this.player.setPosition(standX, standY);
     this.playerContainer.setPosition(standX, standY);
