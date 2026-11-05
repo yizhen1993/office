@@ -410,15 +410,179 @@ export class UIManager {
       };
     }
 
-    // 懸浮圖標點擊展開 (Expand floating player)
+    // 初始化懸浮 YouTube 播放器與音樂圖標的自由拖拽移動功能 (Make Draggable)
+    this.initDraggableMedia();
+  }
+
+  /**
+   * 初始化懸浮 YouTube 播放器與音樂圖標的自由拖拽移動功能 (Draggable Floating Window & Icon)
+   */
+  initDraggableMedia() {
+    const player = document.getElementById('youtube-player-layer');
+    const headerBar = document.getElementById('youtube-header-bar');
     const floatingIcon = document.getElementById('youtube-floating-icon');
-    if (floatingIcon) {
-      floatingIcon.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.expandYouTubePlayer();
+
+    // 1. 懸浮 YouTube 播放器拖曳
+    if (player && headerBar) {
+      let isDragging = false;
+      let startX = 0;
+      let startY = 0;
+      let startLeft = 0;
+      let startTop = 0;
+
+      const onPointerDown = (e) => {
+        // 若點擊的是按鈕或控制項，不啟動拖拽
+        if (e.target.closest('button') || e.target.closest('input')) return;
+
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const rect = player.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+
+        // 確保定錨改由 left 與 top 精準控制
+        player.style.left = `${startLeft}px`;
+        player.style.top = `${startTop}px`;
+        player.style.right = 'auto';
+        player.style.bottom = 'auto';
+        headerBar.style.cursor = 'grabbing';
+
+        // 暫時禁用 iframe 觸發，防止滑鼠/手指移動被 cross-origin iframe 吞沒
+        const iframe = document.getElementById('youtube-iframe');
+        if (iframe) iframe.style.pointerEvents = 'none';
+
+        try {
+          headerBar.setPointerCapture(e.pointerId);
+        } catch (err) {}
       };
+
+      const onPointerMove = (e) => {
+        if (!isDragging) return;
+
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+
+        const playerWidth = player.offsetWidth || 210;
+        const playerHeight = player.offsetHeight || 118;
+        const maxX = Math.max(0, window.innerWidth - playerWidth);
+        const maxY = Math.max(0, window.innerHeight - playerHeight);
+
+        const newLeft = Math.max(0, Math.min(maxX, startLeft + deltaX));
+        const newTop = Math.max(0, Math.min(maxY, startTop + deltaY));
+
+        player.style.left = `${newLeft}px`;
+        player.style.top = `${newTop}px`;
+      };
+
+      const onPointerUp = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        headerBar.style.cursor = 'grab';
+
+        const iframe = document.getElementById('youtube-iframe');
+        if (iframe) iframe.style.pointerEvents = 'auto';
+
+        try {
+          headerBar.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+      };
+
+      headerBar.addEventListener('pointerdown', onPointerDown);
+      headerBar.addEventListener('pointermove', onPointerMove);
+      headerBar.addEventListener('pointerup', onPointerUp);
+      headerBar.addEventListener('pointercancel', onPointerUp);
     }
+
+    // 2. 懸浮音樂圖標拖曳 (Draggable Floating Icon with Click/Drag Distinction)
+    if (floatingIcon) {
+      let isIconDragging = false;
+      let hasMoved = false;
+      let iconStartX = 0;
+      let iconStartY = 0;
+      let iconStartLeft = 0;
+      let iconStartTop = 0;
+
+      const onIconPointerDown = (e) => {
+        isIconDragging = true;
+        hasMoved = false;
+        iconStartX = e.clientX;
+        iconStartY = e.clientY;
+
+        const rect = floatingIcon.getBoundingClientRect();
+        iconStartLeft = rect.left;
+        iconStartTop = rect.top;
+
+        floatingIcon.style.left = `${iconStartLeft}px`;
+        floatingIcon.style.top = `${iconStartTop}px`;
+        floatingIcon.style.right = 'auto';
+        floatingIcon.style.bottom = 'auto';
+        floatingIcon.style.cursor = 'grabbing';
+
+        try {
+          floatingIcon.setPointerCapture(e.pointerId);
+        } catch (err) {}
+      };
+
+      const onIconPointerMove = (e) => {
+        if (!isIconDragging) return;
+
+        const deltaX = e.clientX - iconStartX;
+        const deltaY = e.clientY - iconStartY;
+
+        if (Math.hypot(deltaX, deltaY) > 5) {
+          hasMoved = true;
+        }
+
+        if (hasMoved) {
+          const iconWidth = floatingIcon.offsetWidth || 120;
+          const iconHeight = floatingIcon.offsetHeight || 40;
+          const maxX = Math.max(0, window.innerWidth - iconWidth);
+          const maxY = Math.max(0, window.innerHeight - iconHeight);
+
+          const newLeft = Math.max(0, Math.min(maxX, iconStartLeft + deltaX));
+          const newTop = Math.max(0, Math.min(maxY, iconStartTop + deltaY));
+
+          floatingIcon.style.left = `${newLeft}px`;
+          floatingIcon.style.top = `${newTop}px`;
+        }
+      };
+
+      const onIconPointerUp = (e) => {
+        if (!isIconDragging) return;
+        isIconDragging = false;
+        floatingIcon.style.cursor = 'grab';
+
+        try {
+          floatingIcon.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+
+        // 若無明顯位移，則判定為點擊展開播放器
+        if (!hasMoved) {
+          this.expandYouTubePlayer();
+        }
+      };
+
+      floatingIcon.addEventListener('pointerdown', onIconPointerDown);
+      floatingIcon.addEventListener('pointermove', onIconPointerMove);
+      floatingIcon.addEventListener('pointerup', onIconPointerUp);
+      floatingIcon.addEventListener('pointercancel', onIconPointerUp);
+    }
+
+    // 視窗尺寸改變時自適應邊界約束 (Keep within Viewport on Resize)
+    window.addEventListener('resize', () => {
+      if (player && player.style.left && player.style.left !== 'auto') {
+        const curLeft = parseFloat(player.style.left);
+        const curTop = parseFloat(player.style.top);
+        const playerWidth = player.offsetWidth || 210;
+        const playerHeight = player.offsetHeight || 118;
+        const maxX = Math.max(0, window.innerWidth - playerWidth);
+        const maxY = Math.max(0, window.innerHeight - playerHeight);
+        if (curLeft > maxX) player.style.left = `${maxX}px`;
+        if (curTop > maxY) player.style.top = `${maxY}px`;
+      }
+    });
   }
 
   /**

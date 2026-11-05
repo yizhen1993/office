@@ -77,13 +77,28 @@ body, html {
   pointer-events: none !important;
 }
 
-/* 懸浮播放器頂部控制列 */
+/* 懸浮播放器頂部控制列 (Draggable Header Bar) */
 #youtube-header-bar {
-  opacity: 0.85;
+  opacity: 0.88;
   transition: opacity 0.2s ease;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+#youtube-header-bar:active {
+  cursor: grabbing;
 }
 #youtube-player-layer:hover #youtube-header-bar {
   opacity: 1;
+}
+
+#youtube-floating-icon {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+#youtube-floating-icon:active {
+  cursor: grabbing;
 }
 
 /* #chat-overlay: 左下象限懸浮滾動聊天系統 */
