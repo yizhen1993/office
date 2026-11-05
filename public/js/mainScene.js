@@ -295,22 +295,22 @@ export class MainScene extends Phaser.Scene {
   }
 
   /**
-   * 2. 多媒體投影區 (東北面大屏幕 YouTube Proximity Player)
+   * 2. 多媒體投影區 (YouTube 大屏幕緊貼北牆，置於兩側桌群正中央: x: 520, y: 80)
    */
   buildMultimediaZone() {
     const pos = GAME_CONFIG.ZONES.MEDIA_SCREEN;
 
-    // 大屏幕投影布幕實體
+    // 大屏幕投影布幕實體 (緊貼北牆)
     this.mediaScreenSprite = this.staticColliders.create(pos.x, pos.y, 'prop_projector_screen');
     this.mediaScreenSprite.setDepth(pos.y);
     this.mediaScreenSprite.refreshBody();
 
-    // 投影地毯互動光圈標記
+    // 投影地毯互動光圈標記 (置於大屏幕前方觀影區)
     const zoneBeacon = this.add.graphics();
     zoneBeacon.lineStyle(2, 0x38BDF8, 0.6);
     zoneBeacon.fillStyle(0x38BDF8, 0.12);
-    zoneBeacon.strokeCircle(pos.x, pos.y + 45, 45);
-    zoneBeacon.fillCircle(pos.x, pos.y + 45, 45);
+    zoneBeacon.strokeCircle(pos.x, pos.y + 60, 50);
+    zoneBeacon.fillCircle(pos.x, pos.y + 60, 50);
     zoneBeacon.setDepth(GAME_CONFIG.LAYERS.FLOOR + 2);
 
     // 嚴格依據規範配置: 正前方恰好 5 個獨立圓潤沙發座位 (Exactly 5 distinct chubby-styled sofa sitting seats/nodes)
@@ -336,14 +336,14 @@ export class MainScene extends Phaser.Scene {
     this.interactiveObjects.push({
       type: 'SCREEN',
       x: pos.x,
-      y: pos.y + 45,
-      radius: 65,
+      y: pos.y + 55,
+      radius: 75,
       label: '📺 Click or Press E to Share / Watch YouTube Video'
     });
   }
 
   /**
-   * 3. 遊戲娛樂區 (置於兩側桌群正中間: L型厚實沙發 + 復古 CRT 電視 + PS5)
+   * 3. 遊戲娛樂區 (移至東側休閒露台: L型厚實沙發 + 復古 CRT 電視 + PS5)
    */
   buildArcadeLoungeZone() {
     const lounge = GAME_CONFIG.ZONES.ARCADE_LOUNGE;
@@ -389,7 +389,7 @@ export class MainScene extends Phaser.Scene {
       type: 'TV',
       x: lounge.tvPos.x,
       y: lounge.tvPos.y + 36,
-      radius: 60,
+      radius: 65,
       label: '🕹️ Press E or Action to Play Retro Snake Arcade!'
     });
   }

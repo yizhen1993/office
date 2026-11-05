@@ -26,31 +26,32 @@ export const GAME_CONFIG = {
     UI_OVERLAY: 50000
   },
 
-  // 網格空間分區佈局錨點 (Zone Coordinates - 重新規劃：電視與兩側辦公桌共同移至左側，電視置中於兩側桌群之間)
+  // 網格空間分區佈局錨點 (Zone Coordinates - YouTube 大屏幕緊貼北牆並置於兩側桌群中間，遊戲電視娛樂區移至東側)
   ZONES: {
     // 1. 主辦公區第 1 集群 (左側桌群: x: 180)
     OFFICE_CLUSTER_1: { x: 180, y: 340 },
 
-    // 2. 遊戲娛樂區 (置於兩側桌群正中間: x: 520, 電視與 PS5 在北側，L型沙發居中)
-    ARCADE_LOUNGE: { x: 520, y: 360, tvPos: { x: 520, y: 240 } },
+    // 2. 多媒體投影區 (YouTube 大屏幕置於兩側桌群正中央，緊貼北牆: y: 80)
+    MEDIA_SCREEN: {
+      x: 520,
+      y: 80,
+      controlStickRadius: 160, // 規範要求: 120-150px 近距離交互感應棒
+      audioRadius: 400,
+      // 正前方恰好 5 個獨立圓潤沙發座位 (Exactly 5 distinct chubby-styled sofa sitting seats/nodes)
+      sofaSeats: [
+        { id: 'yt_sofa_1', x: 420, y: 200, label: 'Sofa Seat 1' },
+        { id: 'yt_sofa_2', x: 470, y: 200, label: 'Sofa Seat 2' },
+        { id: 'yt_sofa_3', x: 520, y: 200, label: 'Sofa Seat 3' },
+        { id: 'yt_sofa_4', x: 570, y: 200, label: 'Sofa Seat 4' },
+        { id: 'yt_sofa_5', x: 620, y: 200, label: 'Sofa Seat 5' }
+      ]
+    },
 
     // 3. 主辦公區第 2 集群 (右側桌群: x: 740)
     OFFICE_CLUSTER_2: { x: 740, y: 340 },
 
-    // 4. 多媒體投影區 (移至東北面大露台，保留 5 個獨立沙發座)
-    MEDIA_SCREEN: {
-      x: 1220,
-      y: 140,
-      controlStickRadius: 140, // 規範要求: 120-150px 近距離交互感應棒
-      audioRadius: 380,
-      sofaSeats: [
-        { id: 'yt_sofa_1', x: 1120, y: 230, label: 'Sofa Seat 1' },
-        { id: 'yt_sofa_2', x: 1170, y: 230, label: 'Sofa Seat 2' },
-        { id: 'yt_sofa_3', x: 1220, y: 230, label: 'Sofa Seat 3' },
-        { id: 'yt_sofa_4', x: 1270, y: 230, label: 'Sofa Seat 4' },
-        { id: 'yt_sofa_5', x: 1320, y: 230, label: 'Sofa Seat 5' }
-      ]
-    },
+    // 4. 遊戲娛樂區 (CRT 電視與 PS5 街機休息區移至東側景觀露台)
+    ARCADE_LOUNGE: { x: 1220, y: 290, tvPos: { x: 1220, y: 160 } },
 
     // 5. 休息露台與 NPC DJ 音樂台
     DJ_BOOTH: { x: 930, y: 140 },
