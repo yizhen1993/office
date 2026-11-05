@@ -404,6 +404,39 @@ body, html {
    嚴格限定在 @media (max-width: 639px)，保證桌面版 (>=640px) 佈局 100% 不受任何影響
    ========================================================================== */
 @media (max-width: 639px) {
+  /* 0. 移動端懸浮 YouTube 播放器與收起圖標適配 (Mobile Floating Player & Icon) */
+  #youtube-player-layer {
+    top: 52px;
+    right: 8px;
+    width: 210px;
+    height: 118px;
+    border-radius: 0.85rem;
+    border-width: 2px;
+    z-index: 28;
+  }
+
+  #youtube-header-bar {
+    height: 22px;
+    padding: 0 4px;
+  }
+
+  #youtube-header-bar #youtube-header-title {
+    max-width: 80px;
+    font-size: 9px;
+  }
+
+  #youtube-header-bar button {
+    padding: 1px 4px;
+    font-size: 9px;
+  }
+
+  #youtube-floating-icon {
+    top: 52px !important;
+    right: 8px !important;
+    padding: 4px 8px !important;
+    border-radius: 0.85rem !important;
+  }
+
   /* 1. 移動端聊天懸浮層直接位於左下角 (Directly at bottom-left corner) */
   #chat-overlay {
     bottom: 12px;
